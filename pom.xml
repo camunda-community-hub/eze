@@ -6,17 +6,17 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>org.camunda.community.extension.name</groupId>
-  <artifactId>give-me-a-name</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
+  <groupId>org.camunda.community</groupId>
+  <artifactId>eze</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
   <packaging>jar</packaging>
 
-  <name>give-me-a-name</name>
+  <name>EZE - Embedded Zeebe Engine</name>
 
   <scm>
-    <url>https://github.com/camunda-community-hub/maven-template</url>
-    <connection>scm:git:git@github.com:camunda-community-hub/maven-template.git</connection>
-    <developerConnection>scm:git:git@github.com:camunda-community-hub/maven-tenmplate.git
+    <url>https://github.com/camunda-community-hub/eze</url>
+    <connection>scm:git:git@github.com:camunda-community-hub/eze.git</connection>
+    <developerConnection>scm:git:git@github.com:camunda-community-hub/eze.git
     </developerConnection>
     <tag>HEAD</tag>
   </scm>
@@ -36,6 +36,9 @@
     <version.java>11</version.java>
     <maven.version>3.0</maven.version>
 
+    <kotlin.version>1.5.21</kotlin.version>
+    <zeebe.version>1.1.0</zeebe.version>
+
     <version.junit>5.7.1</version.junit>
 
     <plugin.version.surefire>3.0.0-M5</plugin.version.surefire>
@@ -47,12 +50,51 @@
   <dependencyManagement>
     <dependencies>
       <dependency>
+        <groupId>io.camunda</groupId>
+        <artifactId>zeebe-bom</artifactId>
+        <version>${zeebe.version}</version>
+        <scope>import</scope>
+        <type>pom</type>
+      </dependency>
+
+      <dependency>
         <groupId>org.junit</groupId>
         <artifactId>junit-bom</artifactId>
         <version>${version.junit}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
+
+      <!-- Kotlin deps -->
+
+      <dependency>
+        <groupId>org.jetbrains.kotlin</groupId>
+        <artifactId>kotlin-stdlib</artifactId>
+        <version>${kotlin.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.jetbrains.kotlin</groupId>
+        <artifactId>kotlin-stdlib-jdk8</artifactId>
+        <version>${kotlin.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.jetbrains.kotlin</groupId>
+        <artifactId>kotlin-stdlib-common</artifactId>
+        <version>${kotlin.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.jetbrains.kotlin</groupId>
+        <artifactId>kotlin-reflect</artifactId>
+        <version>${kotlin.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.jetbrains.kotlin</groupId>
+        <artifactId>kotlin-test</artifactId>
+        <version>${kotlin.version}</version>
+        <scope>test</scope>
+      </dependency>
+
+
     </dependencies>
   </dependencyManagement>
 
@@ -68,9 +110,30 @@
       <artifactId>junit-jupiter-api</artifactId>
       <scope>test</scope>
     </dependency>
+
+    <!-- Kotlin deps -->
+
+    <dependency>
+      <groupId>org.jetbrains.kotlin</groupId>
+      <artifactId>kotlin-stdlib-jdk8</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.jetbrains.kotlin</groupId>
+      <artifactId>kotlin-reflect</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.jetbrains.kotlin</groupId>
+      <artifactId>kotlin-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+
   </dependencies>
 
   <build>
+    <sourceDirectory>src/main/kotlin</sourceDirectory>
+
+
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -153,6 +216,53 @@
           </execution>
         </executions>
       </plugin>
+
+      <!--    Kotlin Plugins  -->
+      <plugin>
+        <groupId>org.jetbrains.kotlin</groupId>
+        <artifactId>kotlin-maven-plugin</artifactId>
+        <version>${kotlin.version}</version>
+        <configuration>
+          <args>
+            <arg>-Xjsr305=strict</arg>
+          </args>
+          <compilerPlugins>
+            <plugin>spring</plugin>
+            <plugin>jpa</plugin>
+          </compilerPlugins>
+          <jvmTarget>1.8</jvmTarget>
+        </configuration>
+        <dependencies>
+          <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-maven-allopen</artifactId>
+            <version>${kotlin.version}</version>
+          </dependency>
+          <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-maven-noarg</artifactId>
+            <version>${kotlin.version}</version>
+          </dependency>
+        </dependencies>
+        <executions>
+          <execution>
+            <id>compile</id>
+            <phase>compile</phase>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+          </execution>
+
+          <execution>
+            <id>test-compile</id>
+            <phase>test-compile</phase>
+            <goals>
+              <goal>test-compile</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
     </plugins>
   </build>
 
