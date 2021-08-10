@@ -1,9 +1,9 @@
 package org.camunda.community.eze
 
-object App {
+class App {
 
-    fun main(args: Array<String>) {
-        println("EZE!")
-    }
+}
 
+fun main(args: Array<String>) {
+    EngineFactory.create()
 }
