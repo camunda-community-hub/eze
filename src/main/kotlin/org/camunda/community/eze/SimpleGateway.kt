@@ -14,7 +14,6 @@ import io.camunda.zeebe.protocol.record.ValueType
 import io.camunda.zeebe.protocol.record.intent.DeploymentIntent
 import io.camunda.zeebe.protocol.record.intent.MessageIntent
 import io.camunda.zeebe.protocol.record.intent.ProcessInstanceCreationIntent
-import io.camunda.zeebe.protocol.record.intent.ProcessInstanceIntent
 import io.camunda.zeebe.util.buffer.BufferUtil
 import io.camunda.zeebe.util.buffer.BufferWriter
 import io.grpc.stub.StreamObserver
@@ -110,7 +109,7 @@ class SimpleGateway(private val writer: LogStreamRecordWriter) : GatewayGrpc.Gat
             .valueType(ValueType.PROCESS_INSTANCE_CREATION)
             .intent(ProcessInstanceCreationIntent.CREATE)
 
-        val processInstanceCreationRecord = createRecord(request)
+        val processInstanceCreationRecord = createProcessInstanceCreationRecord(request)
         writeCommandWithoutKey(recordMetadata, processInstanceCreationRecord)
     }
 
@@ -126,13 +125,13 @@ class SimpleGateway(private val writer: LogStreamRecordWriter) : GatewayGrpc.Gat
             .valueType(ValueType.PROCESS_INSTANCE_CREATION)
             .intent(ProcessInstanceCreationIntent.CREATE_WITH_AWAITING_RESULT)
 
-        val processInstanceCreationRecord = createRecord(request.request)
+        val processInstanceCreationRecord = createProcessInstanceCreationRecord(request.request)
         processInstanceCreationRecord.setFetchVariables(request.fetchVariablesList)
 
         writeCommandWithoutKey(recordMetadata, processInstanceCreationRecord)
     }
 
-    private fun createRecord(creationRequest: GatewayOuterClass.CreateProcessInstanceRequest): ProcessInstanceCreationRecord {
+    private fun createProcessInstanceCreationRecord(creationRequest: GatewayOuterClass.CreateProcessInstanceRequest): ProcessInstanceCreationRecord {
         val processInstanceCreationRecord = ProcessInstanceCreationRecord()
 
         processInstanceCreationRecord.bpmnProcessId = creationRequest.bpmnProcessId
