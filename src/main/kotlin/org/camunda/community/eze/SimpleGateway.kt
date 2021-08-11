@@ -15,6 +15,7 @@ import io.camunda.zeebe.protocol.record.intent.DeploymentIntent
 import io.camunda.zeebe.protocol.record.intent.MessageIntent
 import io.camunda.zeebe.protocol.record.intent.ProcessInstanceCreationIntent
 import io.camunda.zeebe.protocol.record.intent.ProcessInstanceIntent
+import io.camunda.zeebe.util.buffer.BufferUtil
 import io.camunda.zeebe.util.buffer.BufferWriter
 import io.grpc.stub.StreamObserver
 import org.agrona.concurrent.UnsafeBuffer
@@ -28,7 +29,11 @@ class SimpleGateway(private val writer: LogStreamRecordWriter) : GatewayGrpc.Gat
     private val recordMetadata = RecordMetadata()
     private val requestIdGenerator = AtomicLong()
 
-    private fun writeCommandWithKey(key : Long, metadata: RecordMetadata, bufferWriter : BufferWriter) {
+    private fun writeCommandWithKey(
+        key: Long,
+        metadata: RecordMetadata,
+        bufferWriter: BufferWriter
+    ) {
         writer.reset()
 
         writer
@@ -38,7 +43,7 @@ class SimpleGateway(private val writer: LogStreamRecordWriter) : GatewayGrpc.Gat
             .tryWrite()
     }
 
-    private fun writeCommandWithoutKey(metadata: RecordMetadata, bufferWriter : BufferWriter) {
+    private fun writeCommandWithoutKey(metadata: RecordMetadata, bufferWriter: BufferWriter) {
         writer.reset()
 
         writer
@@ -84,12 +89,11 @@ class SimpleGateway(private val writer: LogStreamRecordWriter) : GatewayGrpc.Gat
         val deploymentRecord = DeploymentRecord()
         val resources = deploymentRecord.resources()
 
-        request.processesList.forEach {
-            processRequestObject ->
-                resources
-                    .add()
-                    .setResourceName(processRequestObject.name)
-                    .setResource(processRequestObject.definition.toByteArray())
+        request.processesList.forEach { processRequestObject ->
+            resources
+                .add()
+                .setResourceName(processRequestObject.name)
+                .setResource(processRequestObject.definition.toByteArray())
         }
 
         writeCommandWithoutKey(recordMetadata, deploymentRecord)
@@ -111,25 +115,30 @@ class SimpleGateway(private val writer: LogStreamRecordWriter) : GatewayGrpc.Gat
         processInstanceCreationRecord.bpmnProcessId = request.bpmnProcessId
         processInstanceCreationRecord.version = request.version
         processInstanceCreationRecord.processDefinitionKey = request.processDefinitionKey
-        processInstanceCreationRecord.setVariables(UnsafeBuffer(MsgPackConverter.convertToMsgPack(request.variables)))
+
+        request.variables.takeIf { it.isNotEmpty() }?.let {
+            val variables = BufferUtil.wrapArray(MsgPackConverter.convertToMsgPack(it))
+            processInstanceCreationRecord.setVariables(variables)
+        }
 
         writeCommandWithoutKey(recordMetadata, processInstanceCreationRecord)
     }
 
-    private fun prepareRecordMetadata() : RecordMetadata {
+    private fun prepareRecordMetadata(): RecordMetadata {
         return recordMetadata.reset()
             .recordType(RecordType.COMMAND)
             .requestStreamId(1) // partition id
     }
 
-    private fun registerNewRequest(responseObserver: StreamObserver<*>) : Long {
+    private fun registerNewRequest(responseObserver: StreamObserver<*>): Long {
         val currentRequestId = requestIdGenerator.incrementAndGet()
         responseObserverMap[currentRequestId] = responseObserver
         return currentRequestId
     }
 
-    fun responseCallback(requestId : Long, response: GeneratedMessageV3) {
-        val streamObserver = responseObserverMap.remove(requestId) as StreamObserver<GeneratedMessageV3>
+    fun responseCallback(requestId: Long, response: GeneratedMessageV3) {
+        val streamObserver =
+            responseObserverMap.remove(requestId) as StreamObserver<GeneratedMessageV3>
         streamObserver.onNext(response)
         streamObserver.onCompleted()
     }
