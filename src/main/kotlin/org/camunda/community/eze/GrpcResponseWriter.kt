@@ -1,5 +1,6 @@
 package org.camunda.community.eze
 
+import com.google.protobuf.GeneratedMessageV3
 import io.camunda.zeebe.engine.processing.streamprocessor.writers.CommandResponseWriter
 import io.camunda.zeebe.protocol.record.RecordType
 import io.camunda.zeebe.protocol.record.RejectionType
@@ -8,7 +9,7 @@ import io.camunda.zeebe.protocol.record.intent.Intent
 import io.camunda.zeebe.util.buffer.BufferWriter
 import org.agrona.DirectBuffer
 
-class GrpcResponseWriter: CommandResponseWriter {
+class GrpcResponseWriter(responseCallback: (requestId: Long, response: GeneratedMessageV3) -> Unit) : CommandResponseWriter {
 
     override fun partitionId(partitionId: Int): CommandResponseWriter {
         TODO("Not yet implemented")

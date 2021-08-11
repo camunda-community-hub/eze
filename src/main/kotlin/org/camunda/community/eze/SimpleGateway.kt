@@ -1,25 +1,25 @@
 package org.camunda.community.eze
 
+import com.google.protobuf.GeneratedMessageV3
 import io.camunda.zeebe.gateway.protocol.GatewayGrpc
 import io.camunda.zeebe.gateway.protocol.GatewayOuterClass
 import io.camunda.zeebe.logstreams.log.LogStreamRecordWriter
 import io.camunda.zeebe.protocol.impl.record.RecordMetadata
 import io.camunda.zeebe.protocol.impl.record.value.message.MessageRecord
-import io.camunda.zeebe.protocol.impl.record.value.processinstance.ProcessInstanceRecord
-import io.camunda.zeebe.protocol.record.ExecuteCommandRequestDecoder
 import io.camunda.zeebe.protocol.record.RecordType
 import io.camunda.zeebe.protocol.record.ValueType
 import io.camunda.zeebe.protocol.record.intent.MessageIntent
-import io.camunda.zeebe.protocol.record.intent.ProcessInstanceIntent
 import io.camunda.zeebe.util.buffer.BufferWriter
 import io.grpc.stub.StreamObserver
-import org.agrona.DirectBuffer
+import java.util.concurrent.atomic.AtomicLong
 
 // BE AWARE THIS CLASS IS NOT THREAD SAFE
 // FOR SIMPLICITY WE DON'T SUPPORT COMMAND ARRIVE IN PARALLEL
-class SimpleGateway(val writer: LogStreamRecordWriter) : GatewayGrpc.GatewayImplBase() {
+class SimpleGateway(private val writer: LogStreamRecordWriter) : GatewayGrpc.GatewayImplBase() {
 
+    private val responseObserverMap = mutableMapOf<Long, StreamObserver<*>>()
     private val recordMetadata = RecordMetadata()
+    private val requestIdGenerator = AtomicLong()
 
     private fun writeCommandWithKey(key : Long, metadata: RecordMetadata, bufferWriter : BufferWriter) {
         writer.reset()
@@ -41,16 +41,25 @@ class SimpleGateway(val writer: LogStreamRecordWriter) : GatewayGrpc.GatewayImpl
             .tryWrite()
     }
 
+    fun responseCallback(requestId : Long, response: GeneratedMessageV3) {
+        val streamObserver = responseObserverMap.remove(requestId) as StreamObserver<GeneratedMessageV3>
+        streamObserver.onNext(response)
+        streamObserver.onCompleted()
+    }
+
     override fun publishMessage(
         request: GatewayOuterClass.PublishMessageRequest?,
         responseObserver: StreamObserver<GatewayOuterClass.PublishMessageResponse>?
     ) {
+        val currentRequestId = requestIdGenerator.incrementAndGet()
+        responseObserverMap[currentRequestId] = responseObserver!!
+
         recordMetadata.reset()
             .recordType(RecordType.COMMAND)
             .valueType(ValueType.MESSAGE)
             .intent(MessageIntent.PUBLISH)
             .requestStreamId(1) // partition id
-            .requestId(1)
+            .requestId(currentRequestId)
 
         val messageRecord = MessageRecord()
 

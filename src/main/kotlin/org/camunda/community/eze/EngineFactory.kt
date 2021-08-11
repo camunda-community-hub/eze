@@ -43,11 +43,15 @@ object EngineFactory {
 
         val db = createDatabase()
 
+        val responseCallback = simpleGateway::responseCallback
+        val grpcResponseWriter = GrpcResponseWriter(responseCallback)
+
         val streamProcessor = createStreamProcessor(
             partitionCount = 1,
             logStream = logStream,
             database = db,
-            scheduler = scheduler
+            scheduler = scheduler,
+            grpcResponseWriter
         )
 
         streamProcessor.openAsync(false).join()
@@ -59,13 +63,14 @@ object EngineFactory {
         partitionCount: Int,
         logStream: LogStream,
         database: ZeebeDb<ZbColumnFamilies>,
-        scheduler: ActorSchedulingService
+        scheduler: ActorSchedulingService,
+        grpcResponseWriter: GrpcResponseWriter
     ): StreamProcessor {
         return StreamProcessor.builder()
             .logStream(logStream)
             .zeebeDb(database)
             .eventApplierFactory { EventAppliers(it) }
-            .commandResponseWriter(GrpcResponseWriter())
+            .commandResponseWriter(grpcResponseWriter)
             .streamProcessorFactory { context ->
                 EngineProcessors.createEngineProcessors(
                     context,
