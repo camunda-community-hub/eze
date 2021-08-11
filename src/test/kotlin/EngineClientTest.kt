@@ -1,7 +1,6 @@
 import io.camunda.zeebe.client.ZeebeClient
 import io.camunda.zeebe.model.bpmn.Bpmn
 import org.assertj.core.api.Assertions.assertThat
-import org.assertj.core.groups.Tuple
 import org.camunda.community.eze.EngineFactory
 import org.camunda.community.eze.ZeebeEngine
 import org.junit.jupiter.api.AfterEach
@@ -125,5 +124,37 @@ class EngineClientTest {
         assertThat(processInstance.bpmnProcessId).isEqualTo("simpleProcess")
         assertThat(processInstance.processDefinitionKey).isEqualTo(deployment.processes[0].processDefinitionKey)
         assertThat(processInstance.version).isEqualTo(1)
+    }
+
+    @Test
+    fun `should create process instance with result`() {
+        // given
+        val zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
+
+        val deployment = zeebeClient
+            .newDeployCommand()
+            .addProcessModel(
+                Bpmn.createExecutableProcess("simpleProcess")
+                    .startEvent()
+                    .endEvent()
+                    .done(),
+                "simpleProcess.bpmn")
+            .send()
+            .join()
+
+        // when
+        val processInstanceResult = zeebeClient.newCreateInstanceCommand().bpmnProcessId("simpleProcess")
+            .latestVersion()
+            .variables(mapOf("test" to 1))
+            .withResult()
+            .send()
+            .join()
+
+        // then
+        assertThat(processInstanceResult.processInstanceKey).isPositive;
+        assertThat(processInstanceResult.bpmnProcessId).isEqualTo("simpleProcess")
+        assertThat(processInstanceResult.processDefinitionKey).isEqualTo(deployment.processes[0].processDefinitionKey)
+        assertThat(processInstanceResult.version).isEqualTo(1)
+        assertThat(processInstanceResult.variablesAsMap).containsEntry("test", 1)
     }
 }

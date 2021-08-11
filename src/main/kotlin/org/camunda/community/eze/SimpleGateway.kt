@@ -110,18 +110,40 @@ class SimpleGateway(private val writer: LogStreamRecordWriter) : GatewayGrpc.Gat
             .valueType(ValueType.PROCESS_INSTANCE_CREATION)
             .intent(ProcessInstanceCreationIntent.CREATE)
 
+        val processInstanceCreationRecord = createRecord(request)
+        writeCommandWithoutKey(recordMetadata, processInstanceCreationRecord)
+    }
+
+    override fun createProcessInstanceWithResult(
+        request: GatewayOuterClass.CreateProcessInstanceWithResultRequest,
+        responseObserver: StreamObserver<GatewayOuterClass.CreateProcessInstanceWithResultResponse>
+    ) {
+        val requestId = registerNewRequest(responseObserver)
+
+
+        prepareRecordMetadata()
+            .requestId(requestId)
+            .valueType(ValueType.PROCESS_INSTANCE_CREATION)
+            .intent(ProcessInstanceCreationIntent.CREATE_WITH_AWAITING_RESULT)
+
+        val processInstanceCreationRecord = createRecord(request.request)
+        processInstanceCreationRecord.setFetchVariables(request.fetchVariablesList)
+
+        writeCommandWithoutKey(recordMetadata, processInstanceCreationRecord)
+    }
+
+    private fun createRecord(creationRequest: GatewayOuterClass.CreateProcessInstanceRequest): ProcessInstanceCreationRecord {
         val processInstanceCreationRecord = ProcessInstanceCreationRecord()
 
-        processInstanceCreationRecord.bpmnProcessId = request.bpmnProcessId
-        processInstanceCreationRecord.version = request.version
-        processInstanceCreationRecord.processDefinitionKey = request.processDefinitionKey
+        processInstanceCreationRecord.bpmnProcessId = creationRequest.bpmnProcessId
+        processInstanceCreationRecord.version = creationRequest.version
+        processInstanceCreationRecord.processDefinitionKey = creationRequest.processDefinitionKey
 
-        request.variables.takeIf { it.isNotEmpty() }?.let {
+        creationRequest.variables.takeIf { it.isNotEmpty() }?.let {
             val variables = BufferUtil.wrapArray(MsgPackConverter.convertToMsgPack(it))
             processInstanceCreationRecord.setVariables(variables)
         }
-
-        writeCommandWithoutKey(recordMetadata, processInstanceCreationRecord)
+        return processInstanceCreationRecord
     }
 
     private fun prepareRecordMetadata(): RecordMetadata {

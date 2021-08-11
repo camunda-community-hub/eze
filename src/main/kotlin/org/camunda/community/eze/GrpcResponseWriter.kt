@@ -3,6 +3,7 @@ package org.camunda.community.eze
 import com.google.protobuf.GeneratedMessageV3
 import io.camunda.zeebe.engine.processing.streamprocessor.writers.CommandResponseWriter
 import io.camunda.zeebe.gateway.protocol.GatewayOuterClass
+import io.camunda.zeebe.protocol.impl.encoding.MsgPackConverter
 import io.camunda.zeebe.protocol.impl.record.value.deployment.DeploymentRecord
 import io.camunda.zeebe.protocol.impl.record.value.processinstance.ProcessInstanceCreationRecord
 import io.camunda.zeebe.protocol.impl.record.value.processinstance.ProcessInstanceRecord
@@ -130,7 +131,7 @@ class GrpcResponseWriter(val responseCallback: (requestId: Long, response: Gener
             .setProcessDefinitionKey(processInstanceResult.processDefinitionKey)
             .setBpmnProcessId(processInstanceResult.bpmnProcessId)
             .setVersion(processInstanceResult.version)
-            .setVariables(BufferUtil.bufferAsString(processInstanceResult.variablesBuffer))
+            .setVariables(MsgPackConverter.convertToJson(processInstanceResult.variablesBuffer))
             .build()
     }
 
