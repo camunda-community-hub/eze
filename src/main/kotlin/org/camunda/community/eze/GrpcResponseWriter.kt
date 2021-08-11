@@ -5,6 +5,7 @@ import io.camunda.zeebe.engine.processing.streamprocessor.writers.CommandRespons
 import io.camunda.zeebe.gateway.protocol.GatewayOuterClass
 import io.camunda.zeebe.protocol.impl.record.RecordMetadata
 import io.camunda.zeebe.protocol.impl.record.value.deployment.DeploymentRecord
+import io.camunda.zeebe.protocol.impl.record.value.processinstance.ProcessInstanceRecord
 import io.camunda.zeebe.protocol.record.RecordType
 import io.camunda.zeebe.protocol.record.RejectionType
 import io.camunda.zeebe.protocol.record.ValueType
@@ -77,6 +78,7 @@ class GrpcResponseWriter(val responseCallback: (requestId: Long, response: Gener
 
         val response: GeneratedMessageV3 = when (valueType) {
             ValueType.DEPLOYMENT -> createDeployResponse()
+            ValueType.PROCESS_INSTANCE -> createProcessInstanceResponse()
             ValueType.MESSAGE -> createMessageResponse()
             else -> TODO("implement other types")
         }
@@ -103,6 +105,18 @@ class GrpcResponseWriter(val responseCallback: (requestId: Long, response: Gener
                         .build()
                 }
             ).build()
+    }
+
+    private fun createProcessInstanceResponse(): GatewayOuterClass.CreateProcessInstanceResponse {
+        val processInstance = ProcessInstanceRecord()
+        processInstance.wrap(valueBufferView)
+
+        return GatewayOuterClass.CreateProcessInstanceResponse.newBuilder()
+            .setProcessInstanceKey(processInstance.processInstanceKey)
+            .setProcessDefinitionKey(processInstance.processDefinitionKey)
+            .setBpmnProcessId(processInstance.bpmnProcessId)
+            .setVersion(processInstance.version)
+            .build()
     }
 
     private fun createMessageResponse(): GatewayOuterClass.PublishMessageResponse {
