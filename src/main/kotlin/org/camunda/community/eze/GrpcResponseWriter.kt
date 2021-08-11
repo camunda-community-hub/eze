@@ -4,6 +4,7 @@ import com.google.protobuf.GeneratedMessageV3
 import io.camunda.zeebe.engine.processing.streamprocessor.writers.CommandResponseWriter
 import io.camunda.zeebe.gateway.protocol.GatewayOuterClass
 import io.camunda.zeebe.protocol.impl.record.value.deployment.DeploymentRecord
+import io.camunda.zeebe.protocol.impl.record.value.processinstance.ProcessInstanceCreationRecord
 import io.camunda.zeebe.protocol.impl.record.value.processinstance.ProcessInstanceRecord
 import io.camunda.zeebe.protocol.impl.record.value.processinstance.ProcessInstanceResultRecord
 import io.camunda.zeebe.protocol.record.RecordType
@@ -77,8 +78,9 @@ class GrpcResponseWriter(val responseCallback: (requestId: Long, response: Gener
 
         val response: GeneratedMessageV3 = when (valueType) {
             ValueType.DEPLOYMENT -> createDeployResponse()
-            ValueType.PROCESS_INSTANCE -> createProcessInstanceResponse()
+            ValueType.PROCESS_INSTANCE_CREATION -> createProcessInstanceResponse()
             ValueType.PROCESS_INSTANCE_RESULT -> createProcessInstanceWithResultResponse()
+            ValueType.PROCESS_INSTANCE -> createCancelInstanceResponse()
             ValueType.MESSAGE -> createMessageResponse()
             else -> TODO("implement other types")
         }
@@ -108,7 +110,7 @@ class GrpcResponseWriter(val responseCallback: (requestId: Long, response: Gener
     }
 
     private fun createProcessInstanceResponse(): GatewayOuterClass.CreateProcessInstanceResponse {
-        val processInstance = ProcessInstanceRecord()
+        val processInstance = ProcessInstanceCreationRecord()
         processInstance.wrap(valueBufferView)
 
         return GatewayOuterClass.CreateProcessInstanceResponse.newBuilder()
@@ -129,6 +131,11 @@ class GrpcResponseWriter(val responseCallback: (requestId: Long, response: Gener
             .setBpmnProcessId(processInstanceResult.bpmnProcessId)
             .setVersion(processInstanceResult.version)
             .setVariables(BufferUtil.bufferAsString(processInstanceResult.variablesBuffer))
+            .build()
+    }
+
+    private fun createCancelInstanceResponse(): GatewayOuterClass.CancelProcessInstanceResponse {
+        return GatewayOuterClass.CancelProcessInstanceResponse.newBuilder()
             .build()
     }
 
