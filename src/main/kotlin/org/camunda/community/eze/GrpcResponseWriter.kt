@@ -4,6 +4,7 @@ import com.google.protobuf.GeneratedMessageV3
 import io.camunda.zeebe.engine.processing.streamprocessor.writers.CommandResponseWriter
 import io.camunda.zeebe.gateway.protocol.GatewayOuterClass
 import io.camunda.zeebe.protocol.impl.record.RecordMetadata
+import io.camunda.zeebe.protocol.impl.record.value.deployment.DeploymentRecord
 import io.camunda.zeebe.protocol.record.RecordType
 import io.camunda.zeebe.protocol.record.RejectionType
 import io.camunda.zeebe.protocol.record.ValueType
@@ -12,6 +13,9 @@ import io.camunda.zeebe.protocol.record.intent.MessageIntent
 import io.camunda.zeebe.util.buffer.BufferUtil
 import io.camunda.zeebe.util.buffer.BufferWriter
 import org.agrona.DirectBuffer
+import org.agrona.ExpandableArrayBuffer
+import org.agrona.MutableDirectBuffer
+import org.agrona.concurrent.UnsafeBuffer
 
 class GrpcResponseWriter(val responseCallback: (requestId: Long, response: GeneratedMessageV3) -> Unit) :
     CommandResponseWriter {
@@ -23,7 +27,10 @@ class GrpcResponseWriter(val responseCallback: (requestId: Long, response: Gener
     private var valueType: ValueType = ValueType.NULL_VAL
     private var rejectionType: RejectionType = RejectionType.NULL_VAL
     private var rejectionReason: String = ""
-    private var value: BufferWriter? = null
+
+    private var valueBufferView: DirectBuffer = UnsafeBuffer()
+    private var valueBuffer: MutableDirectBuffer = ExpandableArrayBuffer()
+
 
     override fun partitionId(partitionId: Int): CommandResponseWriter {
         this.partitionId = partitionId
@@ -51,7 +58,7 @@ class GrpcResponseWriter(val responseCallback: (requestId: Long, response: Gener
     }
 
     override fun rejectionType(rejectionType: RejectionType): CommandResponseWriter {
-       this.rejectionType = rejectionType
+        this.rejectionType = rejectionType
         return this
     }
 
@@ -61,23 +68,46 @@ class GrpcResponseWriter(val responseCallback: (requestId: Long, response: Gener
     }
 
     override fun valueWriter(value: BufferWriter): CommandResponseWriter {
-        // TODO store value
+        value.write(valueBuffer, 0)
+        valueBufferView.wrap(valueBuffer, 0, value.length)
         return this
     }
 
     override fun tryWriteResponse(requestStreamId: Int, requestId: Long): Boolean {
 
         val response: GeneratedMessageV3 = when (valueType) {
-            ValueType.MESSAGE -> when (intent) {
-                MessageIntent.PUBLISHED -> GatewayOuterClass.PublishMessageResponse.newBuilder()
-                    .setKey(key).build()
-                else -> TODO()
-            }
-            else -> TODO()
+            ValueType.DEPLOYMENT -> createDeployResponse()
+            ValueType.MESSAGE -> createMessageResponse()
+            else -> TODO("implement other types")
         }
 
         responseCallback(requestId, response)
 
         return true
+    }
+
+    private fun createDeployResponse(): GatewayOuterClass.DeployProcessResponse {
+        val deployment = DeploymentRecord()
+        deployment.wrap(valueBufferView)
+
+        return GatewayOuterClass.DeployProcessResponse
+            .newBuilder()
+            .setKey(key)
+            .addAllProcesses(
+                deployment.processesMetadata().map {
+                    GatewayOuterClass.ProcessMetadata.newBuilder()
+                        .setProcessDefinitionKey(it.processDefinitionKey)
+                        .setBpmnProcessId(it.bpmnProcessId)
+                        .setVersion(it.version)
+                        .setResourceName(it.resourceName)
+                        .build()
+                }
+            ).build()
+    }
+
+    private fun createMessageResponse(): GatewayOuterClass.PublishMessageResponse {
+        return GatewayOuterClass.PublishMessageResponse
+            .newBuilder()
+            .setKey(key).build()
     }
 }
