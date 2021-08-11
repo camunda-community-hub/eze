@@ -1,6 +1,10 @@
 package org.camunda.community.eze
 
 import io.camunda.zeebe.db.ZeebeDb
+import io.camunda.zeebe.engine.processing.EngineProcessors
+import io.camunda.zeebe.engine.processing.deployment.DeploymentResponder
+import io.camunda.zeebe.engine.processing.deployment.distribute.DeploymentDistributor
+import io.camunda.zeebe.engine.processing.message.command.SubscriptionCommandSender
 import io.camunda.zeebe.engine.processing.streamprocessor.StreamProcessor
 import io.camunda.zeebe.engine.state.DefaultZeebeDbFactory
 import io.camunda.zeebe.engine.state.ZbColumnFamilies
@@ -31,9 +35,43 @@ object EngineFactory {
         TODO("create an engine")
     }
 
-    private fun createStreamProcessor(): StreamProcessor {
+    private fun createStreamProcessor(
+        partitionCount: Int,
+        logStream: LogStream,
+        database: ZeebeDb<ZbColumnFamilies>,
+        scheduler: ActorSchedulingService
+    ): StreamProcessor {
         return StreamProcessor.builder()
+            .logStream(logStream)
+            .zeebeDb(database)
+            .streamProcessorFactory { context ->
+                EngineProcessors.createEngineProcessors(
+                    context,
+                    partitionCount,
+                    createSubscriptionCommandSender(),
+                    createDeploymentDistributor(),
+                    createDeploymentResponder(),
+                    this::createJobsAvailableCallback
+                )
+            }
+            .actorSchedulingService(scheduler)
             .build()
+    }
+
+    private fun createSubscriptionCommandSender(): SubscriptionCommandSender {
+        TODO()
+    }
+
+    private fun createDeploymentDistributor(): DeploymentDistributor {
+        TODO()
+    }
+
+    private fun createDeploymentResponder(): DeploymentResponder {
+        TODO()
+    }
+
+    private fun createJobsAvailableCallback(jobType: String) {
+        // new job available
     }
 
     private fun createDatabase(): ZeebeDb<ZbColumnFamilies> {
