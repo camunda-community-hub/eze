@@ -1,6 +1,8 @@
 package org.camunda.community.eze
 
+import io.camunda.zeebe.db.ZeebeDb
 import io.camunda.zeebe.engine.processing.streamprocessor.StreamProcessor
+import io.camunda.zeebe.engine.state.ZbColumnFamilies
 import io.camunda.zeebe.logstreams.log.LogStream
 import io.camunda.zeebe.logstreams.storage.LogStorage
 import io.camunda.zeebe.util.sched.Actor
@@ -20,12 +22,20 @@ object EngineFactory {
         val logStorage = createLogStorage()
         val logStream = createLogStream(partitionId = 1, logStorage = logStorage, scheduler = scheduler)
 
+        val db = createDatabase()
+
+
+
         TODO("create an engine")
     }
 
     private fun createStreamProcessor(): StreamProcessor {
         return StreamProcessor.builder()
             .build()
+    }
+
+    private fun createDatabase(): ZeebeDb<ZbColumnFamilies> {
+        TODO ("create db")
     }
 
     private fun createLogStream(partitionId: Int, logStorage: LogStorage, scheduler: ActorSchedulingService): LogStream {
