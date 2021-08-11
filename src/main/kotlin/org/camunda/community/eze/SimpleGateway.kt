@@ -7,10 +7,13 @@ import io.camunda.zeebe.logstreams.log.LogStreamRecordWriter
 import io.camunda.zeebe.protocol.impl.record.RecordMetadata
 import io.camunda.zeebe.protocol.impl.record.value.deployment.DeploymentRecord
 import io.camunda.zeebe.protocol.impl.record.value.message.MessageRecord
+import io.camunda.zeebe.protocol.impl.record.value.processinstance.ProcessInstanceCreationRecord
 import io.camunda.zeebe.protocol.record.RecordType
 import io.camunda.zeebe.protocol.record.ValueType
 import io.camunda.zeebe.protocol.record.intent.DeploymentIntent
 import io.camunda.zeebe.protocol.record.intent.MessageIntent
+import io.camunda.zeebe.protocol.record.intent.ProcessInstanceCreationIntent
+import io.camunda.zeebe.protocol.record.intent.ProcessInstanceIntent
 import io.camunda.zeebe.util.buffer.BufferWriter
 import io.grpc.stub.StreamObserver
 import java.util.concurrent.atomic.AtomicLong
@@ -88,6 +91,26 @@ class SimpleGateway(private val writer: LogStreamRecordWriter) : GatewayGrpc.Gat
         }
 
         writeCommandWithoutKey(recordMetadata, deploymentRecord)
+    }
+
+    override fun createProcessInstance(
+        request: GatewayOuterClass.CreateProcessInstanceRequest,
+        responseObserver: StreamObserver<GatewayOuterClass.CreateProcessInstanceResponse>
+    ) {
+        val requestId = registerNewRequest(responseObserver)
+
+        prepareRecordMetadata()
+            .requestId(requestId)
+            .valueType(ValueType.PROCESS_INSTANCE)
+            .intent(ProcessInstanceCreationIntent.CREATE)
+
+        val processInstanceCreationRecord = ProcessInstanceCreationRecord()
+        processInstanceCreationRecord.bpmnProcessId = request.bpmnProcessId
+        processInstanceCreationRecord.processDefinitionKey = request.processDefinitionKey
+        processInstanceCreationRecord.version = request.version
+//        processInstanceCreationRecord.variablesBuffer = request TODO handle variables
+
+        writeCommandWithoutKey(recordMetadata, processInstanceCreationRecord)
     }
 
     private fun prepareRecordMetadata() : RecordMetadata {
