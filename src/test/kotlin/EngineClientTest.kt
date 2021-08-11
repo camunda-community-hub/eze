@@ -60,4 +60,32 @@ class EngineClientTest {
         assertThat(process.bpmnProcessId).isEqualTo("simpleProcess")
         assertThat(process.processDefinitionKey).isPositive()
     }
+
+    @Test
+    fun shouldCreateInstance() {
+        // given
+        val zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
+        val deployment = zeebeClient
+            .newDeployCommand()
+            .addProcessModel(
+                Bpmn.createExecutableProcess("simpleProcess")
+                    .startEvent()
+                    .endEvent()
+                    .done(),
+                "simpleProcess.bpmn")
+            .send()
+            .join()
+
+        // when
+        val processInstance = zeebeClient.newCreateInstanceCommand().bpmnProcessId("simpleProcess")
+            .latestVersion()
+            .send()
+            .join()
+
+        // then
+        assertThat(processInstance.processInstanceKey).isPositive;
+        assertThat(processInstance.bpmnProcessId).isEqualTo("simpleProcess")
+        assertThat(processInstance.processDefinitionKey).isEqualTo(deployment.processes[0].processDefinitionKey)
+        assertThat(processInstance.version).isEqualTo(1)
+    }
 }
