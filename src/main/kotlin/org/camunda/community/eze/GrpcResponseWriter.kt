@@ -5,8 +5,8 @@ import io.camunda.zeebe.engine.processing.streamprocessor.writers.CommandRespons
 import io.camunda.zeebe.gateway.protocol.GatewayOuterClass
 import io.camunda.zeebe.protocol.impl.encoding.MsgPackConverter
 import io.camunda.zeebe.protocol.impl.record.value.deployment.DeploymentRecord
+import io.camunda.zeebe.protocol.impl.record.value.job.JobBatchRecord
 import io.camunda.zeebe.protocol.impl.record.value.processinstance.ProcessInstanceCreationRecord
-import io.camunda.zeebe.protocol.impl.record.value.processinstance.ProcessInstanceRecord
 import io.camunda.zeebe.protocol.impl.record.value.processinstance.ProcessInstanceResultRecord
 import io.camunda.zeebe.protocol.record.RecordType
 import io.camunda.zeebe.protocol.record.RejectionType
@@ -83,6 +83,7 @@ class GrpcResponseWriter(val responseCallback: (requestId: Long, response: Gener
             ValueType.PROCESS_INSTANCE_RESULT -> createProcessInstanceWithResultResponse()
             ValueType.PROCESS_INSTANCE -> createCancelInstanceResponse()
             ValueType.MESSAGE -> createMessageResponse()
+            ValueType.JOB_BATCH -> createJobBatchResponse()
             else -> TODO("implement other types")
         }
 
@@ -144,5 +145,33 @@ class GrpcResponseWriter(val responseCallback: (requestId: Long, response: Gener
         return GatewayOuterClass.PublishMessageResponse
             .newBuilder()
             .setKey(key).build()
+    }
+
+    private fun createJobBatchResponse(): GatewayOuterClass.ActivateJobsResponse {
+        val jobBatch = JobBatchRecord()
+        jobBatch.wrap(valueBufferView)
+
+        val jobsWithKeys = jobBatch.jobKeys().map { it.value }
+            .zip(jobBatch.jobs())
+
+        return GatewayOuterClass.ActivateJobsResponse.newBuilder()
+            .addAllJobs(
+                jobsWithKeys.map { (jobKey, job) ->
+                    GatewayOuterClass.ActivatedJob.newBuilder()
+                        .setKey(jobKey)
+                        .setType(job.type)
+                        .setRetries(job.retries)
+                        .setWorker(job.worker)
+                        .setDeadline(job.deadline)
+                        .setProcessDefinitionKey(job.processDefinitionKey)
+                        .setBpmnProcessId(job.bpmnProcessId)
+                        .setProcessDefinitionVersion(job.processDefinitionVersion)
+                        .setElementId(job.elementId)
+                        .setElementInstanceKey(job.elementInstanceKey)
+                        .setCustomHeaders(MsgPackConverter.convertToJson(job.customHeadersBuffer))
+                        .build()
+                }
+            )
+            .build()
     }
 }
