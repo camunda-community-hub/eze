@@ -6,6 +6,7 @@ import org.camunda.community.eze.ZeebeEngine
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import java.time.Duration
 
 class EngineClientTest {
 
@@ -156,5 +157,51 @@ class EngineClientTest {
         assertThat(processInstanceResult.processDefinitionKey).isEqualTo(deployment.processes[0].processDefinitionKey)
         assertThat(processInstanceResult.version).isEqualTo(1)
         assertThat(processInstanceResult.variablesAsMap).containsEntry("test", 1)
+    }
+
+
+    @Test
+    fun shouldActivateJob() {
+        // given
+        val zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
+        val deployment = zeebeClient
+            .newDeployCommand()
+            .addProcessModel(
+                Bpmn.createExecutableProcess("simpleProcess")
+                    .startEvent()
+                    .serviceTask("task", { it.zeebeJobType("jobType") } )
+                    .endEvent()
+                    .done(),
+                "simpleProcess.bpmn")
+            .send()
+            .join()
+
+
+        val processInstance = zeebeClient.newCreateInstanceCommand().bpmnProcessId("simpleProcess")
+            .latestVersion()
+            .variables(mapOf("test" to 1))
+            .send()
+            .join()
+
+        // when
+        val activateJobsResponse = zeebeClient
+            .newActivateJobsCommand()
+            .jobType("jobType")
+            .maxJobsToActivate(32)
+            .timeout(Duration.ofMinutes(1))
+            .workerName("yolo")
+            .fetchVariables(listOf("test"))
+            .send()
+            .join()
+
+        // then
+        val jobs = activateJobsResponse.jobs
+        assertThat(jobs).isNotEmpty
+        assertThat(jobs[0].bpmnProcessId).isEqualTo("simpleProcess")
+        assertThat(jobs[0].processDefinitionKey).isEqualTo(deployment.processes[0].processDefinitionKey)
+        assertThat(jobs[0].processInstanceKey).isEqualTo(processInstance.processInstanceKey)
+        assertThat(jobs[0].retries).isEqualTo(3)
+        assertThat(jobs[0].type).isEqualTo("jobType")
+        assertThat(jobs[0].worker).isEqualTo("yolo")
     }
 }
