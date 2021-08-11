@@ -5,9 +5,11 @@ import io.camunda.zeebe.gateway.protocol.GatewayGrpc
 import io.camunda.zeebe.gateway.protocol.GatewayOuterClass
 import io.camunda.zeebe.logstreams.log.LogStreamRecordWriter
 import io.camunda.zeebe.protocol.impl.record.RecordMetadata
+import io.camunda.zeebe.protocol.impl.record.value.deployment.DeploymentRecord
 import io.camunda.zeebe.protocol.impl.record.value.message.MessageRecord
 import io.camunda.zeebe.protocol.record.RecordType
 import io.camunda.zeebe.protocol.record.ValueType
+import io.camunda.zeebe.protocol.record.intent.DeploymentIntent
 import io.camunda.zeebe.protocol.record.intent.MessageIntent
 import io.camunda.zeebe.util.buffer.BufferWriter
 import io.grpc.stub.StreamObserver
@@ -41,29 +43,18 @@ class SimpleGateway(private val writer: LogStreamRecordWriter) : GatewayGrpc.Gat
             .tryWrite()
     }
 
-    fun responseCallback(requestId : Long, response: GeneratedMessageV3) {
-        val streamObserver = responseObserverMap.remove(requestId) as StreamObserver<GeneratedMessageV3>
-        streamObserver.onNext(response)
-        streamObserver.onCompleted()
-    }
-
     override fun publishMessage(
-        request: GatewayOuterClass.PublishMessageRequest?,
-        responseObserver: StreamObserver<GatewayOuterClass.PublishMessageResponse>?
+        messageRequest: GatewayOuterClass.PublishMessageRequest,
+        responseObserver: StreamObserver<GatewayOuterClass.PublishMessageResponse>
     ) {
-        val currentRequestId = requestIdGenerator.incrementAndGet()
-        responseObserverMap[currentRequestId] = responseObserver!!
+        val requestId = registerNewRequest(responseObserver)
 
-        recordMetadata.reset()
-            .recordType(RecordType.COMMAND)
+        prepareRecordMetadata()
+            .requestId(requestId)
             .valueType(ValueType.MESSAGE)
             .intent(MessageIntent.PUBLISH)
-            .requestStreamId(1) // partition id
-            .requestId(currentRequestId)
 
         val messageRecord = MessageRecord()
-
-        val messageRequest = request!!
 
         messageRecord.correlationKey = messageRequest.correlationKey
         messageRecord.messageId = messageRequest.messageId
@@ -72,5 +63,48 @@ class SimpleGateway(private val writer: LogStreamRecordWriter) : GatewayGrpc.Gat
         // messageRecord.variables = messageRequest.variables // TODO support variables
 
         writeCommandWithoutKey(recordMetadata, messageRecord)
+    }
+
+    override fun deployProcess(
+        request: GatewayOuterClass.DeployProcessRequest,
+        responseObserver: StreamObserver<GatewayOuterClass.DeployProcessResponse>
+    ) {
+        val requestId = registerNewRequest(responseObserver)
+
+        prepareRecordMetadata()
+            .requestId(requestId)
+            .valueType(ValueType.DEPLOYMENT)
+            .intent(DeploymentIntent.CREATE)
+
+        val deploymentRecord = DeploymentRecord()
+        val resources = deploymentRecord.resources()
+
+        request.processesList.forEach {
+            processRequestObject ->
+                resources
+                    .add()
+                    .setResourceName(processRequestObject.name)
+                    .setResource(processRequestObject.definition.toByteArray())
+        }
+
+        writeCommandWithoutKey(recordMetadata, deploymentRecord)
+    }
+
+    private fun prepareRecordMetadata() : RecordMetadata {
+        return recordMetadata.reset()
+            .recordType(RecordType.COMMAND)
+            .requestStreamId(1) // partition id
+    }
+
+    private fun registerNewRequest(responseObserver: StreamObserver<*>) : Long {
+        val currentRequestId = requestIdGenerator.incrementAndGet()
+        responseObserverMap[currentRequestId] = responseObserver
+        return currentRequestId
+    }
+
+    fun responseCallback(requestId : Long, response: GeneratedMessageV3) {
+        val streamObserver = responseObserverMap.remove(requestId) as StreamObserver<GeneratedMessageV3>
+        streamObserver.onNext(response)
+        streamObserver.onCompleted()
     }
 }
