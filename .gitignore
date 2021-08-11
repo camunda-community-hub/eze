@@ -13,4 +13,6 @@ buildNumber.properties
 /.project
 /.settings/
 /give-me-a-name.iml
-/.idea/
+.idea/
+
+*.iml
