@@ -46,7 +46,9 @@ object EngineFactory {
             scheduler = scheduler
         )
 
-        TODO("create an engine")
+        streamProcessor.openAsync(false).join()
+
+        return ZeebeEngineImpl()
     }
 
     private fun createStreamProcessor(
