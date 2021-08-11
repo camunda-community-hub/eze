@@ -26,6 +26,7 @@ object EngineFactory {
     fun create(): ZeebeEngine {
 
         val clock = createActorClock()
+
         val scheduler = createActorScheduler(clock)
 
         val logStorage = createLogStorage()
@@ -35,11 +36,9 @@ object EngineFactory {
             scheduler = scheduler
         )
 
-
         val streamWriter = logStream.newLogStreamRecordWriter().join()
         val simpleGateway = SimpleGateway(streamWriter)
         val server = ServerBuilder.forPort(26500).addService(simpleGateway).build()
-        server.start()
 
         val db = createDatabase()
 
@@ -54,10 +53,23 @@ object EngineFactory {
             grpcResponseWriter
         )
 
-        streamProcessor.openAsync(false).join()
+        val startCallback : () -> Unit = {
+            server.start()
+            streamProcessor.openAsync(false).join()
+        }
 
-        return ZeebeEngineImpl()
+        val stopCallback : () -> Unit = {
+            server.shutdownNow()
+            streamProcessor.close()
+            db.close()
+            logStream.close()
+            scheduler.stop()
+        }
+        return ZeebeEngineImpl(startCallback, stopCallback)
     }
+
+
+
 
     private fun createStreamProcessor(
         partitionCount: Int,
@@ -120,7 +132,7 @@ object EngineFactory {
         return InMemoryLogStorage()
     }
 
-    private fun createActorScheduler(clock: ActorClock): ActorSchedulingService {
+    private fun createActorScheduler(clock: ActorClock): ActorScheduler {
         val scheduler = ActorScheduler.newActorScheduler()
             .setActorClock(clock)
             .build()

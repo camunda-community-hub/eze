@@ -3,16 +3,25 @@ import io.camunda.zeebe.model.bpmn.Bpmn
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.groups.Tuple
 import org.camunda.community.eze.EngineFactory
+import org.camunda.community.eze.ZeebeEngine
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
 class EngineClientTest {
 
+    lateinit var zeebeEngine : ZeebeEngine
+
     @BeforeEach
     fun setupGrpcServer() {
-        EngineFactory.create()
+        zeebeEngine = EngineFactory.create()
+        zeebeEngine.start()
     }
 
+    @AfterEach
+    fun tearDown() {
+        zeebeEngine.stop()
+    }
 
     @Test
     fun shouldPublishMessage() {
@@ -31,7 +40,6 @@ class EngineClientTest {
         // then
         assertThat(message.messageKey).isPositive;
     }
-
 
     @Test
     fun shouldDeployProcess() {
@@ -61,7 +69,6 @@ class EngineClientTest {
         assertThat(process.bpmnProcessId).isEqualTo("simpleProcess")
         assertThat(process.processDefinitionKey).isPositive()
     }
-
 
     @Test
     fun shouldCreateInstanceWithoutVariables() {
