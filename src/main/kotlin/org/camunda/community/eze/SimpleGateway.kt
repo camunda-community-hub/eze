@@ -4,6 +4,7 @@ import com.google.protobuf.GeneratedMessageV3
 import io.camunda.zeebe.gateway.protocol.GatewayGrpc
 import io.camunda.zeebe.gateway.protocol.GatewayOuterClass
 import io.camunda.zeebe.logstreams.log.LogStreamRecordWriter
+import io.camunda.zeebe.protocol.impl.encoding.MsgPackConverter
 import io.camunda.zeebe.protocol.impl.record.RecordMetadata
 import io.camunda.zeebe.protocol.impl.record.value.deployment.DeploymentRecord
 import io.camunda.zeebe.protocol.impl.record.value.message.MessageRecord
@@ -16,6 +17,7 @@ import io.camunda.zeebe.protocol.record.intent.ProcessInstanceCreationIntent
 import io.camunda.zeebe.protocol.record.intent.ProcessInstanceIntent
 import io.camunda.zeebe.util.buffer.BufferWriter
 import io.grpc.stub.StreamObserver
+import org.agrona.concurrent.UnsafeBuffer
 import java.util.concurrent.atomic.AtomicLong
 
 // BE AWARE THIS CLASS IS NOT THREAD SAFE
@@ -101,20 +103,14 @@ class SimpleGateway(private val writer: LogStreamRecordWriter) : GatewayGrpc.Gat
 
         prepareRecordMetadata()
             .requestId(requestId)
-            .valueType(ValueType.PROCESS_INSTANCE)
+            .valueType(ValueType.PROCESS_INSTANCE_CREATION)
             .intent(ProcessInstanceCreationIntent.CREATE)
 
         val processInstanceCreationRecord = ProcessInstanceCreationRecord()
 
-        request.bpmnProcessId.takeIf { it.isNotEmpty() }
-            ?.let {
-                processInstanceCreationRecord.bpmnProcessId = it
-                processInstanceCreationRecord.version = request.version
-            }
-
-        request.processDefinitionKey.takeIf { it > 0 }?.let {
-            processInstanceCreationRecord.processDefinitionKey = it
-        }
+        processInstanceCreationRecord.bpmnProcessId = request.bpmnProcessId
+        processInstanceCreationRecord.version = request.version
+        processInstanceCreationRecord.processDefinitionKey = request.processDefinitionKey
 
 //        processInstanceCreationRecord.variablesBuffer = request TODO handle variables
 
