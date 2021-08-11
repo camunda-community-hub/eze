@@ -7,6 +7,8 @@ import io.grpc.inprocess.InProcessChannelBuilder
 import io.grpc.inprocess.InProcessServerBuilder
 import io.grpc.stub.StreamObserver
 import io.grpc.util.MutableHandlerRegistry
+import org.assertj.core.api.Assertions.assertThat
+import org.camunda.community.eze.EngineFactory
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -14,20 +16,9 @@ import java.util.*
 
 class EngineClientTest {
 
-    class ExampleGateway : GatewayGrpc.GatewayImplBase() {
-        override fun publishMessage(
-            request: GatewayOuterClass.PublishMessageRequest,
-            responseObserver: StreamObserver<GatewayOuterClass.PublishMessageResponse>
-        ) {
-            responseObserver.onNext(GatewayOuterClass.PublishMessageResponse.getDefaultInstance())
-            responseObserver.onCompleted()
-        }
-    }
-
     @BeforeEach
     fun setupGrpcServer() {
-        val server = ServerBuilder.forPort(26500).addService(ExampleGateway()).build()
-        server.start()
+        val zeebeEngine = EngineFactory.create()
     }
 
 
@@ -45,6 +36,6 @@ class EngineClientTest {
             .join()
 
         // then
-
+        assertThat(message.messageKey).isPositive;
     }
 }
