@@ -24,6 +24,7 @@ class EngineClientTest {
             .newPublishMessageCommand()
             .messageName("msg")
             .correlationKey("var")
+            .variables(mapOf("test" to 1))
             .send()
             .join()
 
