@@ -84,6 +84,7 @@ class GrpcResponseWriter(val responseCallback: (requestId: Long, response: Gener
             ValueType.PROCESS_INSTANCE -> createCancelInstanceResponse()
             ValueType.MESSAGE -> createMessageResponse()
             ValueType.JOB_BATCH -> createJobBatchResponse()
+            ValueType.JOB -> createJobResponse()
             else -> TODO("implement other types")
         }
 
@@ -172,6 +173,11 @@ class GrpcResponseWriter(val responseCallback: (requestId: Long, response: Gener
                         .build()
                 }
             )
+            .build()
+    }
+
+    private fun createJobResponse(): GatewayOuterClass.CompleteJobResponse {
+        return GatewayOuterClass.CompleteJobResponse.newBuilder()
             .build()
     }
 }
