@@ -37,7 +37,7 @@
     <maven.version>3.0</maven.version>
 
     <kotlin.version>1.5.21</kotlin.version>
-    <zeebe.version>1.1.0</zeebe.version>
+    <zeebe.version>1.2.0-alpha1</zeebe.version>
 
     <version.junit>5.7.1</version.junit>
 
@@ -94,6 +94,17 @@
         <scope>test</scope>
       </dependency>
 
+      <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-core</artifactId>
+        <version>2.14.1</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-slf4j-impl</artifactId>
+        <version>2.14.1</version>
+      </dependency>
 
     </dependencies>
   </dependencyManagement>
@@ -132,6 +143,17 @@
       <groupId>org.jetbrains.kotlin</groupId>
       <artifactId>kotlin-test</artifactId>
       <scope>test</scope>
+    </dependency>
+
+
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-core</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-slf4j-impl</artifactId>
     </dependency>
 
 
