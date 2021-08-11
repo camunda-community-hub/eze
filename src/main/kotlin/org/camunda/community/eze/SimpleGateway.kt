@@ -59,6 +59,7 @@ class SimpleGateway(val writer: LogStreamRecordWriter) : GatewayGrpc.GatewayImpl
         messageRecord.correlationKey = messageRequest.correlationKey
         messageRecord.messageId = messageRequest.messageId
         messageRecord.name = messageRequest.name
+        messageRecord.timeToLive = messageRequest.timeToLive
         // messageRecord.variables = messageRequest.variables // TODO support variables
 
         writeCommandWithoutKey(recordMetadata, messageRecord)
