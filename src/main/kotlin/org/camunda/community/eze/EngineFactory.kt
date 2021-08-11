@@ -2,9 +2,6 @@ package org.camunda.community.eze
 
 import io.camunda.zeebe.db.ZeebeDb
 import io.camunda.zeebe.engine.processing.EngineProcessors
-import io.camunda.zeebe.engine.processing.deployment.DeploymentResponder
-import io.camunda.zeebe.engine.processing.deployment.distribute.DeploymentDistributor
-import io.camunda.zeebe.engine.processing.message.command.SubscriptionCommandSender
 import io.camunda.zeebe.engine.processing.streamprocessor.StreamProcessor
 import io.camunda.zeebe.engine.state.DefaultZeebeDbFactory
 import io.camunda.zeebe.engine.state.ZbColumnFamilies
@@ -16,6 +13,7 @@ import io.camunda.zeebe.util.sched.ActorScheduler
 import io.camunda.zeebe.util.sched.ActorSchedulingService
 import io.camunda.zeebe.util.sched.clock.ActorClock
 import io.camunda.zeebe.util.sched.clock.ControlledActorClock
+import io.grpc.ServerBuilder
 import java.nio.file.Files
 import java.util.concurrent.CompletableFuture
 
@@ -36,6 +34,12 @@ object EngineFactory {
             logStorage = logStorage,
             scheduler = scheduler
         )
+
+
+        val streamWriter = logStream.newLogStreamRecordWriter().join()
+        val simpleGateway = SimpleGateway(streamWriter)
+        val server = ServerBuilder.forPort(26500).addService(simpleGateway).build()
+        server.start()
 
         val db = createDatabase()
 
