@@ -79,6 +79,7 @@ class EngineClientTest {
         // when
         val processInstance = zeebeClient.newCreateInstanceCommand().bpmnProcessId("simpleProcess")
             .latestVersion()
+            .variables(mapOf("test" to 1))
             .send()
             .join()
 
