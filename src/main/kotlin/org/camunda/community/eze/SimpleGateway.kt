@@ -105,9 +105,17 @@ class SimpleGateway(private val writer: LogStreamRecordWriter) : GatewayGrpc.Gat
             .intent(ProcessInstanceCreationIntent.CREATE)
 
         val processInstanceCreationRecord = ProcessInstanceCreationRecord()
-        processInstanceCreationRecord.bpmnProcessId = request.bpmnProcessId
-        processInstanceCreationRecord.processDefinitionKey = request.processDefinitionKey
-        processInstanceCreationRecord.version = request.version
+
+        request.bpmnProcessId.takeIf { it.isNotEmpty() }
+            ?.let {
+                processInstanceCreationRecord.bpmnProcessId = it
+                processInstanceCreationRecord.version = request.version
+            }
+
+        request.processDefinitionKey.takeIf { it > 0 }?.let {
+            processInstanceCreationRecord.processDefinitionKey = it
+        }
+
 //        processInstanceCreationRecord.variablesBuffer = request TODO handle variables
 
         writeCommandWithoutKey(recordMetadata, processInstanceCreationRecord)
