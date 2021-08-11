@@ -7,11 +7,13 @@ import io.camunda.zeebe.logstreams.log.LogStreamRecordWriter
 import io.camunda.zeebe.protocol.impl.encoding.MsgPackConverter
 import io.camunda.zeebe.protocol.impl.record.RecordMetadata
 import io.camunda.zeebe.protocol.impl.record.value.deployment.DeploymentRecord
+import io.camunda.zeebe.protocol.impl.record.value.job.JobBatchRecord
 import io.camunda.zeebe.protocol.impl.record.value.message.MessageRecord
 import io.camunda.zeebe.protocol.impl.record.value.processinstance.ProcessInstanceCreationRecord
 import io.camunda.zeebe.protocol.record.RecordType
 import io.camunda.zeebe.protocol.record.ValueType
 import io.camunda.zeebe.protocol.record.intent.DeploymentIntent
+import io.camunda.zeebe.protocol.record.intent.JobBatchIntent
 import io.camunda.zeebe.protocol.record.intent.MessageIntent
 import io.camunda.zeebe.protocol.record.intent.ProcessInstanceCreationIntent
 import io.camunda.zeebe.util.buffer.BufferUtil
@@ -119,7 +121,6 @@ class SimpleGateway(private val writer: LogStreamRecordWriter) : GatewayGrpc.Gat
     ) {
         val requestId = registerNewRequest(responseObserver)
 
-
         prepareRecordMetadata()
             .requestId(requestId)
             .valueType(ValueType.PROCESS_INSTANCE_CREATION)
@@ -143,6 +144,27 @@ class SimpleGateway(private val writer: LogStreamRecordWriter) : GatewayGrpc.Gat
             processInstanceCreationRecord.setVariables(variables)
         }
         return processInstanceCreationRecord
+    }
+
+    override fun activateJobs(
+        request: GatewayOuterClass.ActivateJobsRequest,
+        responseObserver: StreamObserver<GatewayOuterClass.ActivateJobsResponse>
+    ) {
+        val requestId = registerNewRequest(responseObserver)
+
+        prepareRecordMetadata()
+            .requestId(requestId)
+            .valueType(ValueType.JOB_BATCH)
+            .intent(JobBatchIntent.ACTIVATE)
+
+        val jobBatchRecord = JobBatchRecord()
+
+        jobBatchRecord.type = request.type
+        jobBatchRecord.worker = request.worker
+        jobBatchRecord.timeout = request.timeout
+        jobBatchRecord.maxJobsToActivate = request.maxJobsToActivate
+
+        writeCommandWithoutKey(recordMetadata, jobBatchRecord)
     }
 
     private fun prepareRecordMetadata(): RecordMetadata {
