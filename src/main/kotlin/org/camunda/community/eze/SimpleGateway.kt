@@ -65,7 +65,7 @@ class SimpleGateway(private val writer: LogStreamRecordWriter) : GatewayGrpc.Gat
         messageRecord.messageId = messageRequest.messageId
         messageRecord.name = messageRequest.name
         messageRecord.timeToLive = messageRequest.timeToLive
-        // messageRecord.variables = messageRequest.variables // TODO support variables
+        messageRecord.setVariables(UnsafeBuffer(MsgPackConverter.convertToMsgPack(messageRecord.variables)))
 
         writeCommandWithoutKey(recordMetadata, messageRecord)
     }
