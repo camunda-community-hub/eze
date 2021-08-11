@@ -2,6 +2,7 @@ package org.camunda.community.eze
 
 import io.camunda.zeebe.db.ZeebeDb
 import io.camunda.zeebe.engine.processing.streamprocessor.StreamProcessor
+import io.camunda.zeebe.engine.state.DefaultZeebeDbFactory
 import io.camunda.zeebe.engine.state.ZbColumnFamilies
 import io.camunda.zeebe.logstreams.log.LogStream
 import io.camunda.zeebe.logstreams.storage.LogStorage
@@ -10,6 +11,7 @@ import io.camunda.zeebe.util.sched.ActorScheduler
 import io.camunda.zeebe.util.sched.ActorSchedulingService
 import io.camunda.zeebe.util.sched.clock.ActorClock
 import io.camunda.zeebe.util.sched.clock.ControlledActorClock
+import java.nio.file.Files
 import java.util.concurrent.CompletableFuture
 
 object EngineFactory {
@@ -35,7 +37,8 @@ object EngineFactory {
     }
 
     private fun createDatabase(): ZeebeDb<ZbColumnFamilies> {
-        TODO ("create db")
+        val zeebeDbFactory = DefaultZeebeDbFactory.defaultFactory()
+        return zeebeDbFactory.createDb(Files.createTempDirectory("zeebeDb").toFile())
     }
 
     private fun createLogStream(partitionId: Int, logStorage: LogStorage, scheduler: ActorSchedulingService): LogStream {
