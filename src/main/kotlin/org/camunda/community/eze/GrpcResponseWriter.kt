@@ -3,14 +3,13 @@ package org.camunda.community.eze
 import com.google.protobuf.GeneratedMessageV3
 import io.camunda.zeebe.engine.processing.streamprocessor.writers.CommandResponseWriter
 import io.camunda.zeebe.gateway.protocol.GatewayOuterClass
-import io.camunda.zeebe.protocol.impl.record.RecordMetadata
 import io.camunda.zeebe.protocol.impl.record.value.deployment.DeploymentRecord
 import io.camunda.zeebe.protocol.impl.record.value.processinstance.ProcessInstanceRecord
+import io.camunda.zeebe.protocol.impl.record.value.processinstance.ProcessInstanceResultRecord
 import io.camunda.zeebe.protocol.record.RecordType
 import io.camunda.zeebe.protocol.record.RejectionType
 import io.camunda.zeebe.protocol.record.ValueType
 import io.camunda.zeebe.protocol.record.intent.Intent
-import io.camunda.zeebe.protocol.record.intent.MessageIntent
 import io.camunda.zeebe.util.buffer.BufferUtil
 import io.camunda.zeebe.util.buffer.BufferWriter
 import org.agrona.DirectBuffer
@@ -79,6 +78,7 @@ class GrpcResponseWriter(val responseCallback: (requestId: Long, response: Gener
         val response: GeneratedMessageV3 = when (valueType) {
             ValueType.DEPLOYMENT -> createDeployResponse()
             ValueType.PROCESS_INSTANCE -> createProcessInstanceResponse()
+            ValueType.PROCESS_INSTANCE_RESULT -> createProcessInstanceWithResultResponse()
             ValueType.MESSAGE -> createMessageResponse()
             else -> TODO("implement other types")
         }
@@ -116,6 +116,19 @@ class GrpcResponseWriter(val responseCallback: (requestId: Long, response: Gener
             .setProcessDefinitionKey(processInstance.processDefinitionKey)
             .setBpmnProcessId(processInstance.bpmnProcessId)
             .setVersion(processInstance.version)
+            .build()
+    }
+
+    private fun createProcessInstanceWithResultResponse(): GatewayOuterClass.CreateProcessInstanceWithResultResponse {
+        val processInstanceResult = ProcessInstanceResultRecord()
+        processInstanceResult.wrap(valueBufferView)
+
+        return GatewayOuterClass.CreateProcessInstanceWithResultResponse.newBuilder()
+            .setProcessInstanceKey(processInstanceResult.processInstanceKey)
+            .setProcessDefinitionKey(processInstanceResult.processDefinitionKey)
+            .setBpmnProcessId(processInstanceResult.bpmnProcessId)
+            .setVersion(processInstanceResult.version)
+            .setVariables(BufferUtil.bufferAsString(processInstanceResult.variablesBuffer))
             .build()
     }
 
