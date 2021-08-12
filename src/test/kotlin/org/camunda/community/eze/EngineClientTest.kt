@@ -132,6 +132,34 @@ class EngineClientTest {
     }
 
     @Test
+    fun `should cancel process instance`() {
+        // given
+        val zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
+        zeebeClient
+            .newDeployCommand()
+            .addProcessModel(
+                Bpmn.createExecutableProcess("simpleProcess")
+                    .startEvent()
+                    .endEvent()
+                    .done(),
+                "simpleProcess.bpmn")
+            .send()
+            .join()
+
+        val processInstance = zeebeClient.newCreateInstanceCommand().bpmnProcessId("simpleProcess")
+            .latestVersion()
+            .variables(mapOf("test" to 1))
+            .send()
+            .join()
+
+        // when - then
+        zeebeClient
+            .newCancelInstanceCommand(processInstance.processInstanceKey)
+            .send()
+            .join()
+    }
+
+    @Test
     fun `should create process instance with result`() {
         // given
         val zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
