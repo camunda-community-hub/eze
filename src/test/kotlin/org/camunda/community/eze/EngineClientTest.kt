@@ -1,6 +1,9 @@
 package org.camunda.community.eze
 
 import io.camunda.zeebe.client.ZeebeClient
+import io.camunda.zeebe.client.api.response.ActivateJobsResponse
+import io.camunda.zeebe.client.api.response.ActivatedJob
+import io.camunda.zeebe.gateway.protocol.GatewayOuterClass
 import io.camunda.zeebe.model.bpmn.Bpmn
 import org.assertj.core.api.Assertions.assertThat
 import org.awaitility.kotlin.await
@@ -241,5 +244,56 @@ class EngineClientTest {
 
         // then
         assertThat(processInstanceResult.variablesAsMap).containsEntry("x", 1)
+    }
+
+
+    @Test
+    fun `should fail job`() {
+        // given
+        val zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
+        zeebeClient
+            .newDeployCommand()
+            .addProcessModel(
+                Bpmn.createExecutableProcess("simpleProcess")
+                    .startEvent()
+                    .serviceTask("task") { it.zeebeJobType("jobType") }
+                    .endEvent()
+                    .done(),
+                "simpleProcess.bpmn")
+            .send()
+            .join()
+
+        zeebeClient.newCreateInstanceCommand().bpmnProcessId("simpleProcess")
+            .latestVersion()
+            .variables(mapOf("test" to 1))
+            .send()
+            .join()
+
+        lateinit var job : ActivatedJob
+        await.untilAsserted {
+            val activateJobsResponse = zeebeClient
+                .newActivateJobsCommand()
+                .jobType("jobType")
+                .maxJobsToActivate(32)
+                .timeout(Duration.ofMinutes(1))
+                .workerName("yolo")
+                .fetchVariables(listOf("test"))
+                .send()
+                .join()
+
+            val jobs = activateJobsResponse.jobs
+            assertThat(jobs).isNotEmpty
+            job = jobs[0]
+        }
+
+        // when
+        val failJobResponse = zeebeClient.newFailCommand(job.key)
+            .retries(0)
+            .errorMessage("This failed oops.")
+            .send()
+            .join()
+
+        // then
+        assertThat(failJobResponse).isNotNull
     }
 }
