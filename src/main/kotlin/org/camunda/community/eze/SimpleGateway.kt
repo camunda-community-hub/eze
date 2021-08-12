@@ -186,6 +186,25 @@ class SimpleGateway(private val writer: LogStreamRecordWriter) : GatewayGrpc.Gat
         writeCommandWithKey(request.jobKey, recordMetadata, jobRecord)
     }
 
+    override fun failJob(
+        request: GatewayOuterClass.FailJobRequest,
+        responseObserver: StreamObserver<GatewayOuterClass.FailJobResponse>
+    ) {
+        val requestId = registerNewRequest(responseObserver)
+
+        prepareRecordMetadata()
+            .requestId(requestId)
+            .valueType(ValueType.JOB)
+            .intent(JobIntent.FAIL)
+
+        val jobRecord = JobRecord()
+
+        jobRecord.retries = request.retries
+        jobRecord.errorMessage = request.errorMessage
+
+        writeCommandWithKey(request.jobKey, recordMetadata, jobRecord)
+    }
+
     private fun prepareRecordMetadata(): RecordMetadata {
         return recordMetadata.reset()
             .recordType(RecordType.COMMAND)
