@@ -168,6 +168,42 @@ class EngineClientTest {
             .join()
     }
 
+
+    @Test
+    fun `should update variables on process instance`() {
+        // given
+        val zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
+        zeebeClient
+            .newDeployCommand()
+            .addProcessModel(
+                Bpmn.createExecutableProcess("simpleProcess")
+                    .startEvent()
+                    .endEvent()
+                    .done(),
+                "simpleProcess.bpmn"
+            )
+            .send()
+            .join()
+
+        val processInstance = zeebeClient.newCreateInstanceCommand().bpmnProcessId("simpleProcess")
+            .latestVersion()
+            .variables(mapOf("test" to 1))
+            .send()
+            .join()
+
+        // when
+        val variablesResponse = zeebeClient
+            .newSetVariablesCommand(processInstance.processInstanceKey)
+            .variables(mapOf("test123" to 234))
+            .local(true)
+            .send()
+            .join()
+
+        // then
+        assertThat(variablesResponse).isNotNull
+        assertThat(variablesResponse.key).isPositive
+    }
+
     @Test
     fun `should create process instance with result`() {
         // given
@@ -336,7 +372,6 @@ class EngineClientTest {
         // TODO add assert - after records are available
     }
 
-
     @Test
     fun `should throw error on job`() {
         // given
@@ -385,7 +420,6 @@ class EngineClientTest {
 
         // TODO add assert - after records are available
     }
-
 
     @Test
     fun `should read process instance records`() {
