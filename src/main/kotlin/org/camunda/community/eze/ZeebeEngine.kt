@@ -16,7 +16,9 @@ interface ZeebeEngine {
 
     fun records(): Iterable<Record<*>>
 
-    fun createClient() : ZeebeClient
+    fun createClient(): ZeebeClient
 
-    fun getGatewayAddress() : String
+    fun getGatewayAddress(): String
+
+    fun clock(): ZeebeEngineClock
 }

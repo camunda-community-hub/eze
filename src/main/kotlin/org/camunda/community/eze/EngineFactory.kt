@@ -79,7 +79,8 @@ object EngineFactory {
                 logStream.close()
                 scheduler.stop()
             },
-            recordStream = { createRecordStream(logStream) }
+            recordStream = { createRecordStream(logStream) },
+            clock = clock
         )
     }
 

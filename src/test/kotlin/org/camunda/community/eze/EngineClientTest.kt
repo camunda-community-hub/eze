@@ -16,6 +16,7 @@ import io.camunda.zeebe.model.bpmn.Bpmn
 import io.camunda.zeebe.protocol.record.intent.Intent
 import io.camunda.zeebe.protocol.record.intent.JobIntent
 import io.camunda.zeebe.protocol.record.intent.ProcessInstanceIntent
+import io.camunda.zeebe.protocol.record.intent.TimerIntent
 import io.camunda.zeebe.protocol.record.value.BpmnElementType
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
@@ -27,6 +28,7 @@ import org.camunda.community.eze.RecordStream.ofElementType
 import org.camunda.community.eze.RecordStream.ofRecordType
 import org.camunda.community.eze.RecordStream.print
 import org.camunda.community.eze.RecordStream.processInstance
+import org.camunda.community.eze.RecordStream.timer
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -112,7 +114,6 @@ class EngineClientTest {
         // then
         assertThat(topology).isNotNull
     }
-
 
 
     @Test
@@ -695,6 +696,53 @@ class EngineClientTest {
         }
 
         zeebeEngine.records().print()
+    }
+
+    @Test
+    fun `should increase the time`() {
+        // given
+        val zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
+
+        zeebeClient
+            .newDeployCommand()
+            .addProcessModel(
+                Bpmn.createExecutableProcess("process")
+                    .startEvent()
+                    .intermediateCatchEvent()
+                    .timerWithDuration("P1D")
+                    .endEvent()
+                    .done(),
+                "process.bpmn"
+            )
+            .send()
+            .join()
+
+        zeebeClient.newCreateInstanceCommand().bpmnProcessId("process")
+            .latestVersion()
+            .send()
+            .join()
+
+        await.untilAsserted {
+            val timerCreated = zeebeEngine.records()
+                .timer()
+                .intent(TimerIntent.CREATED)
+                .firstOrNull()
+
+            assertThat(timerCreated).isNotNull
+        }
+
+        // when
+        zeebeEngine.clock().increaseTime(Duration.ofDays(1))
+
+        await.untilAsserted {
+            val processCompleted = zeebeEngine.records()
+                .processInstance()
+                .ofElementType(BpmnElementType.PROCESS)
+                .intent(ProcessInstanceIntent.ELEMENT_COMPLETED)
+                .firstOrNull()
+
+            assertThat(processCompleted).isNotNull
+        }
     }
 
 }

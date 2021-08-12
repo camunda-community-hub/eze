@@ -9,11 +9,13 @@ package org.camunda.community.eze
 
 import io.camunda.zeebe.client.ZeebeClient
 import io.camunda.zeebe.protocol.record.Record
+import io.camunda.zeebe.util.sched.clock.ControlledActorClock
 
 class ZeebeEngineImpl(
     val startCallback: Runnable,
     val stopCallback: Runnable,
-    val recordStream: () -> Iterable<Record<*>>
+    val recordStream: () -> Iterable<Record<*>>,
+    val clock: ControlledActorClock
 ) : ZeebeEngine {
 
     companion object {
@@ -38,5 +40,9 @@ class ZeebeEngineImpl(
 
     override fun getGatewayAddress(): String {
         return "0.0.0.0:$PORT"
+    }
+
+    override fun clock(): ZeebeEngineClock {
+        return ZeebeEngineClockImpl(clock = clock)
     }
 }
