@@ -18,6 +18,7 @@ import org.camunda.community.eze.RecordStream.print
 import org.camunda.community.eze.RecordStream.processInstance
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import java.time.Duration
 
@@ -114,6 +115,22 @@ class EngineClientTest {
         assertThat(processInstance.version).isEqualTo(1)
     }
 
+    @Disabled
+    // TODO handle rejections
+    fun `should fail on create process instance`() {
+        // given
+        val zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
+
+        // when
+        val processInstance = zeebeClient.newCreateInstanceCommand().bpmnProcessId("simpleProcess")
+            .latestVersion()
+            .variables(mapOf("test" to 1))
+            .send()
+            .join()
+
+        // then
+    }
+
     @Test
     fun `should create process instance`() {
         // given
@@ -172,7 +189,6 @@ class EngineClientTest {
             .send()
             .join()
     }
-
 
     @Test
     fun `should update variables on process instance`() {
