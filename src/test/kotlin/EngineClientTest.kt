@@ -11,7 +11,7 @@ import java.time.Duration
 
 class EngineClientTest {
 
-    lateinit var zeebeEngine : ZeebeEngine
+    private lateinit var zeebeEngine : ZeebeEngine
 
     @BeforeEach
     fun `setup grpc server`() {
@@ -39,7 +39,7 @@ class EngineClientTest {
             .join()
 
         // then
-        assertThat(message.messageKey).isPositive;
+        assertThat(message.messageKey).isPositive
     }
 
     @Test
@@ -60,7 +60,7 @@ class EngineClientTest {
             .join()
 
         // then
-        assertThat(deployment.key).isPositive;
+        assertThat(deployment.key).isPositive
         assertThat(deployment.processes).isNotEmpty
 
         val process = deployment.processes[0]
@@ -68,7 +68,7 @@ class EngineClientTest {
         assertThat(process.version).isEqualTo(1)
         assertThat(process.resourceName).isEqualTo("simpleProcess.bpmn")
         assertThat(process.bpmnProcessId).isEqualTo("simpleProcess")
-        assertThat(process.processDefinitionKey).isPositive()
+        assertThat(process.processDefinitionKey).isPositive
     }
 
     @Test
@@ -93,7 +93,7 @@ class EngineClientTest {
             .join()
 
         // then
-        assertThat(processInstance.processInstanceKey).isPositive;
+        assertThat(processInstance.processInstanceKey).isPositive
         assertThat(processInstance.bpmnProcessId).isEqualTo("simpleProcess")
         assertThat(processInstance.processDefinitionKey).isEqualTo(deployment.processes[0].processDefinitionKey)
         assertThat(processInstance.version).isEqualTo(1)
@@ -122,7 +122,7 @@ class EngineClientTest {
             .join()
 
         // then
-        assertThat(processInstance.processInstanceKey).isPositive;
+        assertThat(processInstance.processInstanceKey).isPositive
         assertThat(processInstance.bpmnProcessId).isEqualTo("simpleProcess")
         assertThat(processInstance.processDefinitionKey).isEqualTo(deployment.processes[0].processDefinitionKey)
         assertThat(processInstance.version).isEqualTo(1)
@@ -153,7 +153,7 @@ class EngineClientTest {
             .join()
 
         // then
-        assertThat(processInstanceResult.processInstanceKey).isPositive;
+        assertThat(processInstanceResult.processInstanceKey).isPositive
         assertThat(processInstanceResult.bpmnProcessId).isEqualTo("simpleProcess")
         assertThat(processInstanceResult.processDefinitionKey).isEqualTo(deployment.processes[0].processDefinitionKey)
         assertThat(processInstanceResult.version).isEqualTo(1)
@@ -169,7 +169,7 @@ class EngineClientTest {
             .addProcessModel(
                 Bpmn.createExecutableProcess("simpleProcess")
                     .startEvent()
-                    .serviceTask("task", { it.zeebeJobType("jobType") } )
+                    .serviceTask("task") { it.zeebeJobType("jobType") }
                     .endEvent()
                     .done(),
                 "simpleProcess.bpmn")
@@ -217,7 +217,7 @@ class EngineClientTest {
             .addProcessModel(
                 Bpmn.createExecutableProcess("process")
                     .startEvent()
-                    .serviceTask("task", { it.zeebeJobType("test") } )
+                    .serviceTask("task") { it.zeebeJobType("test") }
                     .endEvent()
                     .done(),
                 "process.bpmn")
