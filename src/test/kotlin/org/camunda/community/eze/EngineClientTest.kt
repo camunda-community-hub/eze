@@ -286,14 +286,13 @@ class EngineClientTest {
             job = jobs[0]
         }
 
-        // when
-        val failJobResponse = zeebeClient.newFailCommand(job.key)
+        // when - then
+        zeebeClient.newFailCommand(job.key)
             .retries(0)
             .errorMessage("This failed oops.")
             .send()
             .join()
 
-        // then
-        assertThat(failJobResponse).isNotNull
+
     }
 }
