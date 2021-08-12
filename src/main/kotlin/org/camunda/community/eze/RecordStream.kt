@@ -8,8 +8,19 @@ import io.camunda.zeebe.protocol.record.intent.Intent
 import io.camunda.zeebe.protocol.record.value.BpmnElementType
 import io.camunda.zeebe.protocol.record.value.JobRecordValue
 import io.camunda.zeebe.protocol.record.value.ProcessInstanceRecordValue
+import io.camunda.zeebe.test.util.record.CompactRecordLogger
 
 object RecordStream {
+
+    fun Iterable<Record<*>>.print(compact: Boolean = true) {
+        if (compact) {
+            CompactRecordLogger(toList()).log()
+        } else {
+            println("===== records (count: ${count()}) =====")
+            toList().forEach { println(it.toJson()) }
+            println("---------------------------")
+        }
+    }
 
     fun <T : RecordValue> Iterable<Record<T>>.ofRecordType(
         commands: Boolean = false,

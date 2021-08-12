@@ -14,6 +14,7 @@ import org.camunda.community.eze.RecordStream.job
 import org.camunda.community.eze.RecordStream.key
 import org.camunda.community.eze.RecordStream.ofElementType
 import org.camunda.community.eze.RecordStream.ofRecordType
+import org.camunda.community.eze.RecordStream.print
 import org.camunda.community.eze.RecordStream.processInstance
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
@@ -492,6 +493,44 @@ class EngineClientTest {
             assertThat(processInstanceRecord.bpmnElementType).isEqualTo(BpmnElementType.PROCESS)
         }
 
+    }
+
+    @Test
+    fun `should print records`() {
+        // given
+        val zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
+
+        zeebeClient
+            .newDeployCommand()
+            .addProcessModel(
+                Bpmn.createExecutableProcess("simpleProcess")
+                    .startEvent()
+                    .endEvent()
+                    .done(),
+                "simpleProcess.bpmn"
+            )
+            .send()
+            .join()
+
+        // when
+        zeebeClient.newCreateInstanceCommand().bpmnProcessId("simpleProcess")
+            .latestVersion()
+            .variables(mapOf("test" to 1))
+            .send()
+            .join()
+
+        // then
+        await.untilAsserted {
+            val processRecords = zeebeEngine.records()
+                .processInstance()
+                .ofElementType(BpmnElementType.PROCESS)
+                .intent(ProcessInstanceIntent.ELEMENT_COMPLETED)
+                .firstOrNull()
+
+            assertThat(processRecords).isNotNull
+        }
+
+        zeebeEngine.records().print()
     }
 
 }
