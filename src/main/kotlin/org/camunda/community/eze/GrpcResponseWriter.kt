@@ -12,6 +12,7 @@ import io.camunda.zeebe.protocol.record.RecordType
 import io.camunda.zeebe.protocol.record.RejectionType
 import io.camunda.zeebe.protocol.record.ValueType
 import io.camunda.zeebe.protocol.record.intent.Intent
+import io.camunda.zeebe.protocol.record.intent.JobIntent
 import io.camunda.zeebe.util.buffer.BufferUtil
 import io.camunda.zeebe.util.buffer.BufferWriter
 import org.agrona.DirectBuffer
@@ -84,7 +85,11 @@ class GrpcResponseWriter(val responseCallback: (requestId: Long, response: Gener
             ValueType.PROCESS_INSTANCE -> createCancelInstanceResponse()
             ValueType.MESSAGE -> createMessageResponse()
             ValueType.JOB_BATCH -> createJobBatchResponse()
-            ValueType.JOB -> createJobResponse()
+            ValueType.JOB -> when (intent) {
+                JobIntent.COMPLETED -> createCompleteJobResponse()
+                JobIntent.FAILED -> createFailJobResponse()
+                else -> TODO("not implemented yet")
+            }
             else -> TODO("implement other types")
         }
 
@@ -178,8 +183,13 @@ class GrpcResponseWriter(val responseCallback: (requestId: Long, response: Gener
             .build()
     }
 
-    private fun createJobResponse(): GatewayOuterClass.CompleteJobResponse {
+    private fun createCompleteJobResponse(): GatewayOuterClass.CompleteJobResponse {
         return GatewayOuterClass.CompleteJobResponse.newBuilder()
+            .build()
+    }
+
+    private fun createFailJobResponse(): GatewayOuterClass.FailJobResponse {
+        return GatewayOuterClass.FailJobResponse.newBuilder()
             .build()
     }
 }
