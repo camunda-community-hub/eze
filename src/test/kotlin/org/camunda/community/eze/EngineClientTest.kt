@@ -1,20 +1,25 @@
 package org.camunda.community.eze
 
 import io.camunda.zeebe.client.ZeebeClient
-import io.camunda.zeebe.client.api.response.ActivateJobsResponse
 import io.camunda.zeebe.client.api.response.ActivatedJob
-import io.camunda.zeebe.gateway.protocol.GatewayOuterClass
 import io.camunda.zeebe.model.bpmn.Bpmn
+import io.camunda.zeebe.protocol.record.intent.Intent
+import io.camunda.zeebe.protocol.record.intent.ProcessInstanceIntent
+import io.camunda.zeebe.protocol.record.value.BpmnElementType
 import org.assertj.core.api.Assertions.assertThat
 import org.awaitility.kotlin.await
+import org.camunda.community.eze.RecordStream.ofElementType
+import org.camunda.community.eze.RecordStream.ofRecordType
+import org.camunda.community.eze.RecordStream.processInstance
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.Duration
 
+
 class EngineClientTest {
 
-    private lateinit var zeebeEngine : ZeebeEngine
+    private lateinit var zeebeEngine: ZeebeEngine
 
     @BeforeEach
     fun `setup grpc server`() {
@@ -58,7 +63,8 @@ class EngineClientTest {
                     .startEvent()
                     .endEvent()
                     .done(),
-                "simpleProcess.bpmn")
+                "simpleProcess.bpmn"
+            )
             .send()
             .join()
 
@@ -85,7 +91,8 @@ class EngineClientTest {
                     .startEvent()
                     .endEvent()
                     .done(),
-                "simpleProcess.bpmn")
+                "simpleProcess.bpmn"
+            )
             .send()
             .join()
 
@@ -113,7 +120,8 @@ class EngineClientTest {
                     .startEvent()
                     .endEvent()
                     .done(),
-                "simpleProcess.bpmn")
+                "simpleProcess.bpmn"
+            )
             .send()
             .join()
 
@@ -142,7 +150,8 @@ class EngineClientTest {
                     .startEvent()
                     .endEvent()
                     .done(),
-                "simpleProcess.bpmn")
+                "simpleProcess.bpmn"
+            )
             .send()
             .join()
 
@@ -171,17 +180,19 @@ class EngineClientTest {
                     .startEvent()
                     .endEvent()
                     .done(),
-                "simpleProcess.bpmn")
+                "simpleProcess.bpmn"
+            )
             .send()
             .join()
 
         // when
-        val processInstanceResult = zeebeClient.newCreateInstanceCommand().bpmnProcessId("simpleProcess")
-            .latestVersion()
-            .variables(mapOf("test" to 1))
-            .withResult()
-            .send()
-            .join()
+        val processInstanceResult =
+            zeebeClient.newCreateInstanceCommand().bpmnProcessId("simpleProcess")
+                .latestVersion()
+                .variables(mapOf("test" to 1))
+                .withResult()
+                .send()
+                .join()
 
         // then
         assertThat(processInstanceResult.processInstanceKey).isPositive
@@ -203,7 +214,8 @@ class EngineClientTest {
                     .serviceTask("task") { it.zeebeJobType("jobType") }
                     .endEvent()
                     .done(),
-                "simpleProcess.bpmn")
+                "simpleProcess.bpmn"
+            )
             .send()
             .join()
 
@@ -251,7 +263,8 @@ class EngineClientTest {
                     .serviceTask("task") { it.zeebeJobType("test") }
                     .endEvent()
                     .done(),
-                "process.bpmn")
+                "process.bpmn"
+            )
             .send()
             .join()
 
@@ -296,7 +309,7 @@ class EngineClientTest {
             .send()
             .join()
 
-        lateinit var job : ActivatedJob
+        lateinit var job: ActivatedJob
         await.untilAsserted {
             val activateJobsResponse = zeebeClient
                 .newActivateJobsCommand()
@@ -346,7 +359,7 @@ class EngineClientTest {
             .send()
             .join()
 
-        lateinit var job : ActivatedJob
+        lateinit var job: ActivatedJob
         await.untilAsserted {
             val activateJobsResponse = zeebeClient
                 .newActivateJobsCommand()
@@ -372,4 +385,57 @@ class EngineClientTest {
 
         // TODO add assert - after records are available
     }
+
+
+    @Test
+    fun `should read process instance records`() {
+        // given
+        val zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
+
+        zeebeClient
+            .newDeployCommand()
+            .addProcessModel(
+                Bpmn.createExecutableProcess("simpleProcess")
+                    .startEvent()
+                    .endEvent()
+                    .done(),
+                "simpleProcess.bpmn"
+            )
+            .send()
+            .join()
+
+        // when
+        val processInstance = zeebeClient.newCreateInstanceCommand().bpmnProcessId("simpleProcess")
+            .latestVersion()
+            .variables(mapOf("test" to 1))
+            .send()
+            .join()
+
+        // then
+        await.untilAsserted {
+            val processRecords = zeebeEngine.records()
+                .processInstance()
+                .ofRecordType(events = true)
+                .ofElementType(BpmnElementType.PROCESS)
+                .take(4)
+
+            assertThat(processRecords)
+                .hasSize(4)
+                .extracting<Intent> { it.intent }
+                .contains(
+                    ProcessInstanceIntent.ELEMENT_ACTIVATING,
+                    ProcessInstanceIntent.ELEMENT_ACTIVATED,
+                    ProcessInstanceIntent.ELEMENT_COMPLETING,
+                    ProcessInstanceIntent.ELEMENT_COMPLETED
+                )
+
+            val processInstanceRecord = processRecords[0].value
+            assertThat(processInstanceRecord.processDefinitionKey).isEqualTo(processInstance.processDefinitionKey)
+            assertThat(processInstanceRecord.bpmnProcessId).isEqualTo(processInstance.bpmnProcessId)
+            assertThat(processInstanceRecord.version).isEqualTo(processInstance.version)
+            assertThat(processInstanceRecord.bpmnElementType).isEqualTo(BpmnElementType.PROCESS)
+        }
+
+    }
+
 }
