@@ -8,6 +8,8 @@
 package org.camunda.community.eze
 
 import com.google.protobuf.GeneratedMessageV3
+import com.google.rpc.Code
+import com.google.rpc.Status
 import io.camunda.zeebe.engine.processing.streamprocessor.writers.CommandResponseWriter
 import io.camunda.zeebe.gateway.protocol.GatewayOuterClass
 import io.camunda.zeebe.protocol.impl.encoding.MsgPackConverter
@@ -29,7 +31,10 @@ import org.agrona.ExpandableArrayBuffer
 import org.agrona.MutableDirectBuffer
 import org.agrona.concurrent.UnsafeBuffer
 
-class GrpcResponseWriter(val responseCallback: (requestId: Long, response: GeneratedMessageV3) -> Unit) :
+class GrpcResponseWriter(
+    val responseCallback: (requestId: Long, response: GeneratedMessageV3) -> Unit,
+    val errorCallback: (requestId: Long, error: Status) -> Unit
+) :
     CommandResponseWriter {
 
     private var partitionId: Int = -1
@@ -87,6 +92,12 @@ class GrpcResponseWriter(val responseCallback: (requestId: Long, response: Gener
 
     override fun tryWriteResponse(requestStreamId: Int, requestId: Long): Boolean {
 
+        if (rejectionType != RejectionType.NULL_VAL) {
+            val rejectionResponse = createRejectionResponse()
+            errorCallback(requestId, rejectionResponse)
+            return true
+        }
+
         val response: GeneratedMessageV3 = when (valueType) {
             ValueType.DEPLOYMENT -> createDeployResponse()
             ValueType.PROCESS_INSTANCE_CREATION -> createProcessInstanceResponse()
@@ -101,13 +112,12 @@ class GrpcResponseWriter(val responseCallback: (requestId: Long, response: Gener
                 JobIntent.FAILED -> createFailJobResponse()
                 JobIntent.ERROR_THROWN -> createJobThrowErrorResponse()
                 JobIntent.RETRIES_UPDATED -> createJobUpdateRetriesResponse()
-                else -> TODO("not implemented yet")
+                else -> TODO("not support job command '$intent'")
             }
-            else -> TODO("implement other types")
+            else -> TODO("not supported command '$valueType'")
         }
 
         responseCallback(requestId, response)
-
         return true
     }
 
@@ -230,6 +240,22 @@ class GrpcResponseWriter(val responseCallback: (requestId: Long, response: Gener
 
     private fun createJobUpdateRetriesResponse(): GatewayOuterClass.UpdateJobRetriesResponse {
         return GatewayOuterClass.UpdateJobRetriesResponse.newBuilder()
+            .build()
+    }
+
+    private fun createRejectionResponse(): Status {
+        val statusCode = when (rejectionType) {
+            RejectionType.INVALID_ARGUMENT -> Code.INVALID_ARGUMENT_VALUE
+            RejectionType.NOT_FOUND -> Code.NOT_FOUND_VALUE
+            RejectionType.ALREADY_EXISTS -> Code.ALREADY_EXISTS_VALUE
+            RejectionType.INVALID_STATE -> Code.FAILED_PRECONDITION_VALUE
+            RejectionType.PROCESSING_ERROR -> Code.INTERNAL_VALUE
+            else -> Code.UNKNOWN_VALUE
+        }
+
+        return Status.newBuilder()
+            .setMessage("Command '$intent' rejected with code '$rejectionType': $rejectionReason")
+            .setCode(statusCode)
             .build()
     }
 }

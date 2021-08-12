@@ -8,6 +8,7 @@
 package org.camunda.community.eze
 
 import io.camunda.zeebe.client.ZeebeClient
+import io.camunda.zeebe.client.api.command.ClientException
 import io.camunda.zeebe.client.api.response.ActivatedJob
 import io.camunda.zeebe.client.api.response.PartitionBrokerHealth
 import io.camunda.zeebe.client.api.response.PartitionBrokerRole
@@ -17,6 +18,7 @@ import io.camunda.zeebe.protocol.record.intent.JobIntent
 import io.camunda.zeebe.protocol.record.intent.ProcessInstanceIntent
 import io.camunda.zeebe.protocol.record.value.BpmnElementType
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.awaitility.kotlin.await
 import org.camunda.community.eze.RecordStream.intent
 import org.camunda.community.eze.RecordStream.job
@@ -27,7 +29,6 @@ import org.camunda.community.eze.RecordStream.print
 import org.camunda.community.eze.RecordStream.processInstance
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import java.time.Duration
 
@@ -191,20 +192,21 @@ class EngineClientTest {
         assertThat(processInstance.version).isEqualTo(1)
     }
 
-    @Disabled
-    // TODO handle rejections
-    fun `should fail on create process instance`() {
+    @Test
+    fun `should reject command`() {
         // given
         val zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
 
         // when
-        val processInstance = zeebeClient.newCreateInstanceCommand().bpmnProcessId("simpleProcess")
+        val future = zeebeClient.newCreateInstanceCommand()
+            .bpmnProcessId("process")
             .latestVersion()
-            .variables(mapOf("test" to 1))
             .send()
-            .join()
 
         // then
+        assertThatThrownBy { future.join() }
+            .isInstanceOf(ClientException::class.java)
+            .hasMessage("Command 'CREATE' rejected with code 'NOT_FOUND': Expected to find process definition with process ID 'process', but none found")
     }
 
     @Test

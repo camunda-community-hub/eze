@@ -8,6 +8,7 @@
 package org.camunda.community.eze
 
 import com.google.protobuf.GeneratedMessageV3
+import com.google.rpc.Status
 import io.camunda.zeebe.gateway.protocol.GatewayGrpc
 import io.camunda.zeebe.gateway.protocol.GatewayOuterClass
 import io.camunda.zeebe.logstreams.log.LogStreamRecordWriter
@@ -28,10 +29,10 @@ import io.camunda.zeebe.protocol.record.value.VariableDocumentUpdateSemantic
 import io.camunda.zeebe.util.buffer.BufferUtil
 import io.camunda.zeebe.util.buffer.BufferUtil.wrapString
 import io.camunda.zeebe.util.buffer.BufferWriter
+import io.grpc.protobuf.StatusProto
 import io.grpc.stub.StreamObserver
 import org.agrona.concurrent.UnsafeBuffer
 import java.util.concurrent.atomic.AtomicLong
-import kotlin.reflect.full.companionObject
 
 // BE AWARE THIS CLASS IS NOT THREAD SAFE
 // FOR SIMPLICITY WE DON'T SUPPORT COMMAND ARRIVE IN PARALLEL
@@ -194,7 +195,8 @@ class SimpleGateway(private val writer: LogStreamRecordWriter) : GatewayGrpc.Gat
         }
 
         variableDocumentRecord.scopeKey = request.elementInstanceKey
-        variableDocumentRecord.updateSemantics = if (request.local) VariableDocumentUpdateSemantic.LOCAL else VariableDocumentUpdateSemantic.PROPAGATE
+        variableDocumentRecord.updateSemantics =
+            if (request.local) VariableDocumentUpdateSemantic.LOCAL else VariableDocumentUpdateSemantic.PROPAGATE
 
         writeCommandWithoutKey(recordMetadata, variableDocumentRecord)
     }
@@ -363,4 +365,11 @@ class SimpleGateway(private val writer: LogStreamRecordWriter) : GatewayGrpc.Gat
         streamObserver.onNext(response)
         streamObserver.onCompleted()
     }
+
+    fun errorCallback(requestId: Long, error: Status) {
+        val streamObserver =
+            responseObserverMap.remove(requestId) as StreamObserver<GeneratedMessageV3>
+        streamObserver.onError(StatusProto.toStatusException(error))
+    }
+
 }

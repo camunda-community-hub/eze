@@ -53,8 +53,10 @@ object EngineFactory {
 
         val db = createDatabase()
 
-        val responseCallback = simpleGateway::responseCallback
-        val grpcResponseWriter = GrpcResponseWriter(responseCallback)
+        val grpcResponseWriter = GrpcResponseWriter(
+            responseCallback = simpleGateway::responseCallback,
+            errorCallback = simpleGateway::errorCallback
+        )
 
         val streamProcessor = createStreamProcessor(
             partitionCount = 1,
