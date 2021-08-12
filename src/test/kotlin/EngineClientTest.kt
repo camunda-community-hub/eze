@@ -14,18 +14,18 @@ class EngineClientTest {
     lateinit var zeebeEngine : ZeebeEngine
 
     @BeforeEach
-    fun setupGrpcServer() {
+    fun `setup grpc server`() {
         zeebeEngine = EngineFactory.create()
         zeebeEngine.start()
     }
 
     @AfterEach
-    fun tearDown() {
+    fun `tear down`() {
         zeebeEngine.stop()
     }
 
     @Test
-    fun shouldPublishMessage() {
+    fun `should publish message`() {
         // given
         val zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
 
@@ -43,7 +43,7 @@ class EngineClientTest {
     }
 
     @Test
-    fun shouldDeployProcess() {
+    fun `should deploy process`() {
         // given
         val zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
 
@@ -72,7 +72,7 @@ class EngineClientTest {
     }
 
     @Test
-    fun shouldCreateInstanceWithoutVariables() {
+    fun `should create instance without variables`() {
         // given
         val zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
         val deployment = zeebeClient
@@ -100,7 +100,7 @@ class EngineClientTest {
     }
 
     @Test
-    fun shouldCreateInstance() {
+    fun `should create process instance`() {
         // given
         val zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
         val deployment = zeebeClient
@@ -161,7 +161,7 @@ class EngineClientTest {
     }
 
     @Test
-    fun shouldActivateJob() {
+    fun `should activate job`() {
         // given
         val zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
         val deployment = zeebeClient
