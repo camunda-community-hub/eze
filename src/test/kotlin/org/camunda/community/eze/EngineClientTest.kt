@@ -421,17 +421,18 @@ class EngineClientTest {
                     .variables(mapOf("x" to 1))
                     .send()
                     .join()
-            }.open()
+            }.open().use {
 
-        // when
-        val processInstanceResult = zeebeClient.newCreateInstanceCommand().bpmnProcessId("process")
-            .latestVersion()
-            .withResult()
-            .send()
-            .join()
+            // when
+            val processInstanceResult = zeebeClient.newCreateInstanceCommand().bpmnProcessId("process")
+                .latestVersion()
+                .withResult()
+                .send()
+                .join()
 
-        // then
-        assertThat(processInstanceResult.variablesAsMap).containsEntry("x", 1)
+            // then
+            assertThat(processInstanceResult.variablesAsMap).containsEntry("x", 1)
+        }
     }
 
     @Test
