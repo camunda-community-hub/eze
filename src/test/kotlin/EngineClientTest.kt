@@ -1,6 +1,7 @@
 import io.camunda.zeebe.client.ZeebeClient
 import io.camunda.zeebe.model.bpmn.Bpmn
 import org.assertj.core.api.Assertions.assertThat
+import org.awaitility.kotlin.await
 import org.camunda.community.eze.EngineFactory
 import org.camunda.community.eze.ZeebeEngine
 import org.junit.jupiter.api.AfterEach
@@ -183,25 +184,27 @@ class EngineClientTest {
             .send()
             .join()
 
-        // when
-        val activateJobsResponse = zeebeClient
-            .newActivateJobsCommand()
-            .jobType("jobType")
-            .maxJobsToActivate(32)
-            .timeout(Duration.ofMinutes(1))
-            .workerName("yolo")
-            .fetchVariables(listOf("test"))
-            .send()
-            .join()
+        await.untilAsserted {
+            // when
+            val activateJobsResponse = zeebeClient
+                .newActivateJobsCommand()
+                .jobType("jobType")
+                .maxJobsToActivate(32)
+                .timeout(Duration.ofMinutes(1))
+                .workerName("yolo")
+                .fetchVariables(listOf("test"))
+                .send()
+                .join()
 
-        // then
-        val jobs = activateJobsResponse.jobs
-        assertThat(jobs).isNotEmpty
-        assertThat(jobs[0].bpmnProcessId).isEqualTo("simpleProcess")
-        assertThat(jobs[0].processDefinitionKey).isEqualTo(deployment.processes[0].processDefinitionKey)
-        assertThat(jobs[0].processInstanceKey).isEqualTo(processInstance.processInstanceKey)
-        assertThat(jobs[0].retries).isEqualTo(3)
-        assertThat(jobs[0].type).isEqualTo("jobType")
-        assertThat(jobs[0].worker).isEqualTo("yolo")
+            // then
+            val jobs = activateJobsResponse.jobs
+            assertThat(jobs).isNotEmpty
+            assertThat(jobs[0].bpmnProcessId).isEqualTo("simpleProcess")
+            assertThat(jobs[0].processDefinitionKey).isEqualTo(deployment.processes[0].processDefinitionKey)
+            assertThat(jobs[0].processInstanceKey).isEqualTo(processInstance.processInstanceKey)
+            assertThat(jobs[0].retries).isEqualTo(3)
+            assertThat(jobs[0].type).isEqualTo("jobType")
+            assertThat(jobs[0].worker).isEqualTo("yolo")
+        }
     }
 }

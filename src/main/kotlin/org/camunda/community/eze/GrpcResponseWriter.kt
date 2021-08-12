@@ -167,9 +167,11 @@ class GrpcResponseWriter(val responseCallback: (requestId: Long, response: Gener
                         .setProcessDefinitionKey(job.processDefinitionKey)
                         .setBpmnProcessId(job.bpmnProcessId)
                         .setProcessDefinitionVersion(job.processDefinitionVersion)
+                        .setProcessInstanceKey(job.processInstanceKey)
                         .setElementId(job.elementId)
                         .setElementInstanceKey(job.elementInstanceKey)
                         .setCustomHeaders(MsgPackConverter.convertToJson(job.customHeadersBuffer))
+                        .setVariables(MsgPackConverter.convertToJson(job.variablesBuffer))
                         .build()
                 }
             )
