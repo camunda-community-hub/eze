@@ -24,6 +24,7 @@ import io.camunda.zeebe.util.buffer.BufferWriter
 import io.grpc.stub.StreamObserver
 import org.agrona.concurrent.UnsafeBuffer
 import java.util.concurrent.atomic.AtomicLong
+import kotlin.reflect.full.companionObject
 
 // BE AWARE THIS CLASS IS NOT THREAD SAFE
 // FOR SIMPLICITY WE DON'T SUPPORT COMMAND ARRIVE IN PARALLEL
@@ -305,6 +306,37 @@ class SimpleGateway(private val writer: LogStreamRecordWriter) : GatewayGrpc.Gat
         writeCommandWithKey(request.jobKey, recordMetadata, jobRecord)
     }
 
+    override fun topology(
+        request: GatewayOuterClass.TopologyRequest,
+        responseObserver: StreamObserver<GatewayOuterClass.TopologyResponse>
+    ) {
+        val partition = GatewayOuterClass.Partition
+            .newBuilder()
+            .setHealth(GatewayOuterClass.Partition.PartitionBrokerHealth.HEALTHY)
+            .setRole(GatewayOuterClass.Partition.PartitionBrokerRole.LEADER)
+            .setPartitionId(1)
+            .build()
+
+        val brokerInfo = GatewayOuterClass.BrokerInfo
+            .newBuilder()
+            .addPartitions(partition)
+            .setHost("0.0.0.0")
+            .setPort(26500)
+            .setVersion("X.Y.Z")
+            .build()
+
+        val topologyResponse = GatewayOuterClass.TopologyResponse
+            .newBuilder()
+            .addBrokers(brokerInfo)
+            .setClusterSize(1)
+            .setPartitionsCount(1)
+            .setReplicationFactor(1)
+            .setGatewayVersion("A.B.C")
+            .build()
+
+        responseObserver.onNext(topologyResponse)
+        responseObserver.onCompleted()
+    }
 
     private fun prepareRecordMetadata(): RecordMetadata {
         return recordMetadata.reset()

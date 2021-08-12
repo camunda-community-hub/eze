@@ -2,6 +2,8 @@ package org.camunda.community.eze
 
 import io.camunda.zeebe.client.ZeebeClient
 import io.camunda.zeebe.client.api.response.ActivatedJob
+import io.camunda.zeebe.client.api.response.PartitionBrokerHealth
+import io.camunda.zeebe.client.api.response.PartitionBrokerRole
 import io.camunda.zeebe.model.bpmn.Bpmn
 import io.camunda.zeebe.protocol.record.intent.Intent
 import io.camunda.zeebe.protocol.record.intent.JobIntent
@@ -36,6 +38,38 @@ class EngineClientTest {
     @AfterEach
     fun `tear down`() {
         zeebeEngine.stop()
+    }
+
+
+    @Test
+    fun `should request topology`() {
+        // given
+        val zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
+
+        // when
+        val topology = zeebeClient
+            .newTopologyRequest()
+            .send()
+            .join()
+
+        // then
+        assertThat(topology.clusterSize).isEqualTo(1)
+        assertThat(topology.replicationFactor).isEqualTo(1)
+        assertThat(topology.partitionsCount).isEqualTo(1)
+        assertThat(topology.gatewayVersion).isEqualTo("A.B.C")
+
+        assertThat(topology.brokers).hasSize(1)
+        val broker = topology.brokers[0]
+        assertThat(broker.host).isEqualTo("0.0.0.0")
+        assertThat(broker.port).isEqualTo(26500)
+        assertThat(broker.version).isEqualTo("X.Y.Z")
+
+        assertThat(broker.partitions).hasSize(1)
+        val partition = broker.partitions[0]
+        assertThat(partition.health).isEqualTo(PartitionBrokerHealth.HEALTHY)
+        assertThat(partition.isLeader).isTrue()
+        assertThat(partition.role).isEqualTo(PartitionBrokerRole.LEADER)
+        assertThat(partition.partitionId).isEqualTo(1)
     }
 
     @Test
