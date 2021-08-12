@@ -1,5 +1,6 @@
 package org.camunda.community.eze
 
+import io.camunda.zeebe.client.ZeebeClient
 import io.camunda.zeebe.protocol.record.Record
 
 class ZeebeEngineImpl(
@@ -18,5 +19,9 @@ class ZeebeEngineImpl(
 
     override fun records(): Iterable<Record<*>> {
         return recordStream.invoke()
+    }
+
+    override fun createClient(): ZeebeClient {
+        return ZeebeClient.newClientBuilder().usePlaintext().build()
     }
 }
