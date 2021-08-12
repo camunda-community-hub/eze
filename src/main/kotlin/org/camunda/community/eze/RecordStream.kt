@@ -5,9 +5,8 @@ import io.camunda.zeebe.protocol.record.RecordType
 import io.camunda.zeebe.protocol.record.RecordValue
 import io.camunda.zeebe.protocol.record.ValueType
 import io.camunda.zeebe.protocol.record.intent.Intent
-import io.camunda.zeebe.protocol.record.value.BpmnElementType
-import io.camunda.zeebe.protocol.record.value.JobRecordValue
-import io.camunda.zeebe.protocol.record.value.ProcessInstanceRecordValue
+import io.camunda.zeebe.protocol.record.value.*
+import io.camunda.zeebe.protocol.record.value.deployment.Process
 import io.camunda.zeebe.test.util.record.CompactRecordLogger
 
 object RecordStream {
@@ -55,6 +54,54 @@ object RecordStream {
         return ofValueType(ValueType.PROCESS_INSTANCE)
     }
 
+    fun Iterable<Record<*>>.job(): Iterable<Record<JobRecordValue>> {
+        return ofValueType(ValueType.JOB)
+    }
+
+    fun Iterable<Record<*>>.jobBatch(): Iterable<Record<JobBatchRecordValue>> {
+        return ofValueType(ValueType.JOB_BATCH)
+    }
+
+    fun Iterable<Record<*>>.deployment(): Iterable<Record<DeploymentRecordValue>> {
+        return ofValueType(ValueType.DEPLOYMENT)
+    }
+
+    fun Iterable<Record<*>>.process(): Iterable<Record<Process>> {
+        return ofValueType(ValueType.PROCESS)
+    }
+
+    fun Iterable<Record<*>>.variable(): Iterable<Record<VariableRecordValue>> {
+        return ofValueType(ValueType.VARIABLE)
+    }
+
+    fun Iterable<Record<*>>.variableDocument(): Iterable<Record<VariableDocumentRecordValue>> {
+        return ofValueType(ValueType.VARIABLE_DOCUMENT)
+    }
+
+    fun Iterable<Record<*>>.incident(): Iterable<Record<IncidentRecordValue>> {
+        return ofValueType(ValueType.INCIDENT)
+    }
+
+    fun Iterable<Record<*>>.timer(): Iterable<Record<TimerRecordValue>> {
+        return ofValueType(ValueType.TIMER)
+    }
+
+    fun Iterable<Record<*>>.message(): Iterable<Record<MessageRecordValue>> {
+        return ofValueType(ValueType.MESSAGE)
+    }
+
+    fun Iterable<Record<*>>.messageSubscription(): Iterable<Record<MessageSubscriptionRecordValue>> {
+        return ofValueType(ValueType.MESSAGE_SUBSCRIPTION)
+    }
+
+    fun Iterable<Record<*>>.messageStartEventSubscription(): Iterable<Record<MessageStartEventSubscriptionRecordValue>> {
+        return ofValueType(ValueType.MESSAGE_START_EVENT_SUBSCRIPTION)
+    }
+
+    fun Iterable<Record<*>>.processMessageSubscription(): Iterable<Record<ProcessMessageSubscriptionRecordValue>> {
+        return ofValueType(ValueType.PROCESS_MESSAGE_SUBSCRIPTION)
+    }
+
     fun Iterable<Record<ProcessInstanceRecordValue>>.ofElementType(elementType: BpmnElementType): Iterable<Record<ProcessInstanceRecordValue>> {
         return filter { it.value.bpmnElementType == elementType }
     }
@@ -63,9 +110,6 @@ object RecordStream {
         return filter { it.value.processInstanceKey == processInstanceKey }
     }
 
-    fun Iterable<Record<*>>.job(): Iterable<Record<JobRecordValue>> {
-        return ofValueType(ValueType.JOB)
-    }
 
     fun Iterable<Record<JobRecordValue>>.ofJobType(jobType: String): Iterable<Record<JobRecordValue>> {
         return filter { it.value.type == jobType }
