@@ -1,9 +1,9 @@
+package org.camunda.community.eze
+
 import io.camunda.zeebe.client.ZeebeClient
 import io.camunda.zeebe.model.bpmn.Bpmn
 import org.assertj.core.api.Assertions.assertThat
 import org.awaitility.kotlin.await
-import org.camunda.community.eze.EngineFactory
-import org.camunda.community.eze.ZeebeEngine
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
