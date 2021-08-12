@@ -8,14 +8,12 @@ import io.camunda.zeebe.protocol.impl.encoding.MsgPackConverter
 import io.camunda.zeebe.protocol.impl.record.RecordMetadata
 import io.camunda.zeebe.protocol.impl.record.value.deployment.DeploymentRecord
 import io.camunda.zeebe.protocol.impl.record.value.job.JobBatchRecord
+import io.camunda.zeebe.protocol.impl.record.value.job.JobRecord
 import io.camunda.zeebe.protocol.impl.record.value.message.MessageRecord
 import io.camunda.zeebe.protocol.impl.record.value.processinstance.ProcessInstanceCreationRecord
 import io.camunda.zeebe.protocol.record.RecordType
 import io.camunda.zeebe.protocol.record.ValueType
-import io.camunda.zeebe.protocol.record.intent.DeploymentIntent
-import io.camunda.zeebe.protocol.record.intent.JobBatchIntent
-import io.camunda.zeebe.protocol.record.intent.MessageIntent
-import io.camunda.zeebe.protocol.record.intent.ProcessInstanceCreationIntent
+import io.camunda.zeebe.protocol.record.intent.*
 import io.camunda.zeebe.util.buffer.BufferUtil
 import io.camunda.zeebe.util.buffer.BufferWriter
 import io.grpc.stub.StreamObserver
@@ -165,6 +163,27 @@ class SimpleGateway(private val writer: LogStreamRecordWriter) : GatewayGrpc.Gat
         jobBatchRecord.maxJobsToActivate = request.maxJobsToActivate
 
         writeCommandWithoutKey(recordMetadata, jobBatchRecord)
+    }
+
+    override fun completeJob(
+        request: GatewayOuterClass.CompleteJobRequest,
+        responseObserver: StreamObserver<GatewayOuterClass.CompleteJobResponse>
+    ) {
+        val requestId = registerNewRequest(responseObserver)
+
+        prepareRecordMetadata()
+            .requestId(requestId)
+            .valueType(ValueType.JOB)
+            .intent(JobIntent.COMPLETE)
+
+        val jobRecord = JobRecord()
+
+        request.variables.takeIf { it.isNotEmpty() }?.let {
+            val variables = BufferUtil.wrapArray(MsgPackConverter.convertToMsgPack(it))
+            jobRecord.setVariables(variables)
+        }
+
+        writeCommandWithKey(request.jobKey, recordMetadata, jobRecord)
     }
 
     private fun prepareRecordMetadata(): RecordMetadata {

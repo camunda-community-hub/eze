@@ -160,7 +160,6 @@ class EngineClientTest {
         assertThat(processInstanceResult.variablesAsMap).containsEntry("test", 1)
     }
 
-
     @Test
     fun shouldActivateJob() {
         // given
@@ -206,5 +205,41 @@ class EngineClientTest {
             assertThat(jobs[0].type).isEqualTo("jobType")
             assertThat(jobs[0].worker).isEqualTo("yolo")
         }
+    }
+
+    @Test
+    fun `should complete job`() {
+        // given
+        val zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
+
+        zeebeClient
+            .newDeployCommand()
+            .addProcessModel(
+                Bpmn.createExecutableProcess("process")
+                    .startEvent()
+                    .serviceTask("task", { it.zeebeJobType("test") } )
+                    .endEvent()
+                    .done(),
+                "process.bpmn")
+            .send()
+            .join()
+
+        zeebeClient.newWorker().jobType("test")
+            .handler { jobClient, job ->
+                jobClient.newCompleteCommand(job.key)
+                    .variables(mapOf("x" to 1))
+                    .send()
+                    .join()
+            }.open()
+
+        // when
+        val processInstanceResult = zeebeClient.newCreateInstanceCommand().bpmnProcessId("process")
+            .latestVersion()
+            .withResult()
+            .send()
+            .join()
+
+        // then
+        assertThat(processInstanceResult.variablesAsMap).containsEntry("x", 1)
     }
 }
