@@ -402,7 +402,7 @@ class EngineClientTest {
     }
 
     @Test
-    fun `should update retries on job`() {
+    fun `should throw error on job`() {
         // given
         val zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
         zeebeClient
@@ -462,7 +462,7 @@ class EngineClientTest {
 
 
     @Test
-    fun `should throw error on job`() {
+    fun `should update retries on job`() {
         // given
         val zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
         zeebeClient
@@ -506,7 +506,15 @@ class EngineClientTest {
             .send()
             .join()
 
-        // TODO add assert - after records are available
+        await.untilAsserted {
+            val retriesUpdated = zeebeEngine.records()
+                .job()
+                .key(job.key)
+                .intent(JobIntent.RETRIES_UPDATED)
+                .firstOrNull()
+
+            assertThat(retriesUpdated).isNotNull
+        }
     }
 
     @Test
