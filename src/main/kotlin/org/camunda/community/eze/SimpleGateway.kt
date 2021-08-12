@@ -7,6 +7,7 @@ import io.camunda.zeebe.logstreams.log.LogStreamRecordWriter
 import io.camunda.zeebe.protocol.impl.encoding.MsgPackConverter
 import io.camunda.zeebe.protocol.impl.record.RecordMetadata
 import io.camunda.zeebe.protocol.impl.record.value.deployment.DeploymentRecord
+import io.camunda.zeebe.protocol.impl.record.value.incident.IncidentRecord
 import io.camunda.zeebe.protocol.impl.record.value.job.JobBatchRecord
 import io.camunda.zeebe.protocol.impl.record.value.job.JobRecord
 import io.camunda.zeebe.protocol.impl.record.value.message.MessageRecord
@@ -188,6 +189,22 @@ class SimpleGateway(private val writer: LogStreamRecordWriter) : GatewayGrpc.Gat
         variableDocumentRecord.updateSemantics = if (request.local) VariableDocumentUpdateSemantic.LOCAL else VariableDocumentUpdateSemantic.PROPAGATE
 
         writeCommandWithoutKey(recordMetadata, variableDocumentRecord)
+    }
+
+    override fun resolveIncident(
+        request: GatewayOuterClass.ResolveIncidentRequest,
+        responseObserver: StreamObserver<GatewayOuterClass.ResolveIncidentResponse>
+    ) {
+        val requestId = registerNewRequest(responseObserver)
+
+        prepareRecordMetadata()
+            .requestId(requestId)
+            .valueType(ValueType.INCIDENT)
+            .intent(IncidentIntent.RESOLVE)
+
+        val incidentRecord = IncidentRecord()
+
+        writeCommandWithKey(request.incidentKey, recordMetadata, incidentRecord)
     }
 
     override fun activateJobs(

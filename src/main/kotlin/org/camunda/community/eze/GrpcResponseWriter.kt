@@ -5,6 +5,7 @@ import io.camunda.zeebe.engine.processing.streamprocessor.writers.CommandRespons
 import io.camunda.zeebe.gateway.protocol.GatewayOuterClass
 import io.camunda.zeebe.protocol.impl.encoding.MsgPackConverter
 import io.camunda.zeebe.protocol.impl.record.value.deployment.DeploymentRecord
+import io.camunda.zeebe.protocol.impl.record.value.incident.IncidentRecord
 import io.camunda.zeebe.protocol.impl.record.value.job.JobBatchRecord
 import io.camunda.zeebe.protocol.impl.record.value.processinstance.ProcessInstanceCreationRecord
 import io.camunda.zeebe.protocol.impl.record.value.processinstance.ProcessInstanceResultRecord
@@ -84,6 +85,7 @@ class GrpcResponseWriter(val responseCallback: (requestId: Long, response: Gener
             ValueType.PROCESS_INSTANCE_CREATION -> createProcessInstanceResponse()
             ValueType.PROCESS_INSTANCE_RESULT -> createProcessInstanceWithResultResponse()
             ValueType.PROCESS_INSTANCE -> createCancelInstanceResponse()
+            ValueType.INCIDENT -> createResolveIncidentResponse()
             ValueType.VARIABLE_DOCUMENT -> createSetVariablesResponse()
             ValueType.MESSAGE -> createMessageResponse()
             ValueType.JOB_BATCH -> createJobBatchResponse()
@@ -99,6 +101,13 @@ class GrpcResponseWriter(val responseCallback: (requestId: Long, response: Gener
         responseCallback(requestId, response)
 
         return true
+    }
+
+    private fun createResolveIncidentResponse(): GatewayOuterClass.ResolveIncidentResponse {
+        val incident = IncidentRecord()
+        incident.wrap(valueBufferView)
+
+        return GatewayOuterClass.ResolveIncidentResponse.newBuilder().build()
     }
 
     private fun createDeployResponse(): GatewayOuterClass.DeployProcessResponse {
