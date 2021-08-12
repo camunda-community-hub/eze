@@ -12,9 +12,11 @@ import io.camunda.zeebe.protocol.impl.record.value.job.JobRecord
 import io.camunda.zeebe.protocol.impl.record.value.message.MessageRecord
 import io.camunda.zeebe.protocol.impl.record.value.processinstance.ProcessInstanceCreationRecord
 import io.camunda.zeebe.protocol.impl.record.value.processinstance.ProcessInstanceRecord
+import io.camunda.zeebe.protocol.impl.record.value.variable.VariableDocumentRecord
 import io.camunda.zeebe.protocol.record.RecordType
 import io.camunda.zeebe.protocol.record.ValueType
 import io.camunda.zeebe.protocol.record.intent.*
+import io.camunda.zeebe.protocol.record.value.VariableDocumentUpdateSemantic
 import io.camunda.zeebe.util.buffer.BufferUtil
 import io.camunda.zeebe.util.buffer.BufferUtil.wrapString
 import io.camunda.zeebe.util.buffer.BufferWriter
@@ -162,6 +164,30 @@ class SimpleGateway(private val writer: LogStreamRecordWriter) : GatewayGrpc.Gat
         processInstanceRecord.processInstanceKey = request.processInstanceKey
 
         writeCommandWithKey(request.processInstanceKey, recordMetadata, processInstanceRecord)
+    }
+
+    override fun setVariables(
+        request: GatewayOuterClass.SetVariablesRequest,
+        responseObserver: StreamObserver<GatewayOuterClass.SetVariablesResponse>
+    ) {
+        val requestId = registerNewRequest(responseObserver)
+
+        prepareRecordMetadata()
+            .requestId(requestId)
+            .valueType(ValueType.VARIABLE_DOCUMENT)
+            .intent(VariableDocumentIntent.UPDATE)
+
+        val variableDocumentRecord = VariableDocumentRecord()
+
+        request.variables.takeIf { it.isNotEmpty() }?.let {
+            val variables = BufferUtil.wrapArray(MsgPackConverter.convertToMsgPack(it))
+            variableDocumentRecord.setVariables(variables)
+        }
+
+        variableDocumentRecord.scopeKey = request.elementInstanceKey
+        variableDocumentRecord.updateSemantics = if (request.local) VariableDocumentUpdateSemantic.LOCAL else VariableDocumentUpdateSemantic.PROPAGATE
+
+        writeCommandWithoutKey(recordMetadata, variableDocumentRecord)
     }
 
     override fun activateJobs(

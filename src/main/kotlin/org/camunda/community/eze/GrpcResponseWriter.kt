@@ -8,6 +8,7 @@ import io.camunda.zeebe.protocol.impl.record.value.deployment.DeploymentRecord
 import io.camunda.zeebe.protocol.impl.record.value.job.JobBatchRecord
 import io.camunda.zeebe.protocol.impl.record.value.processinstance.ProcessInstanceCreationRecord
 import io.camunda.zeebe.protocol.impl.record.value.processinstance.ProcessInstanceResultRecord
+import io.camunda.zeebe.protocol.impl.record.value.variable.VariableDocumentRecord
 import io.camunda.zeebe.protocol.record.RecordType
 import io.camunda.zeebe.protocol.record.RejectionType
 import io.camunda.zeebe.protocol.record.ValueType
@@ -83,6 +84,7 @@ class GrpcResponseWriter(val responseCallback: (requestId: Long, response: Gener
             ValueType.PROCESS_INSTANCE_CREATION -> createProcessInstanceResponse()
             ValueType.PROCESS_INSTANCE_RESULT -> createProcessInstanceWithResultResponse()
             ValueType.PROCESS_INSTANCE -> createCancelInstanceResponse()
+            ValueType.VARIABLE_DOCUMENT -> createSetVariablesResponse()
             ValueType.MESSAGE -> createMessageResponse()
             ValueType.JOB_BATCH -> createJobBatchResponse()
             ValueType.JOB -> when (intent) {
@@ -142,6 +144,16 @@ class GrpcResponseWriter(val responseCallback: (requestId: Long, response: Gener
             .setVariables(MsgPackConverter.convertToJson(processInstanceResult.variablesBuffer))
             .build()
     }
+
+    private fun createSetVariablesResponse(): GatewayOuterClass.SetVariablesResponse {
+        val variableDocumentRecord = VariableDocumentRecord()
+        variableDocumentRecord.wrap(valueBufferView)
+
+        return GatewayOuterClass.SetVariablesResponse.newBuilder()
+            .setKey(key)
+            .build()
+    }
+
 
     private fun createCancelInstanceResponse(): GatewayOuterClass.CancelProcessInstanceResponse {
         return GatewayOuterClass.CancelProcessInstanceResponse.newBuilder()
