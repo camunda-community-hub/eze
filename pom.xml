@@ -31,7 +31,18 @@
     <version>1.0.0</version>
   </parent>
 
+  <licenses>
+    <license>
+      <name>Zeebe Community License v1.1</name>
+      <url>https://zeebe.io/legal/zeebe-community-license-1.1</url>
+    </license>
+  </licenses>
+
   <properties>
+
+    <!-- Zeebe Community License v1.1 header -->
+    <license.header>licenses/COPYING-HEADER.txt</license.header>
+
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <version.java>11</version.java>
     <maven.version>3.0</maven.version>
@@ -45,6 +56,7 @@
     <plugin.version.javadoc>3.2.0</plugin.version.javadoc>
     <plugin.version.jacoco>0.8.6</plugin.version.jacoco>
     <plugin.version.fmt>2.10</plugin.version.fmt>
+    <plugin.version.license>4.1</plugin.version.license>
   </properties>
 
   <dependencyManagement>
@@ -311,6 +323,37 @@
             <phase>test-compile</phase>
             <goals>
               <goal>test-compile</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- LICENSE PLUGIN -->
+      <plugin>
+        <groupId>com.mycila</groupId>
+        <artifactId>license-maven-plugin</artifactId>
+        <version>${plugin.version.license}</version>
+        <configuration>
+          <header>${license.header}</header>
+          <properties>
+            <owner>camunda services GmbH</owner>
+            <email>info@camunda.com</email>
+          </properties>
+          <includes>
+            <include>**/*.java</include>
+            <include>**/*.scala</include>
+            <include>**/*.kt</include>
+          </includes>
+          <mapping>
+            <java>SLASHSTAR_STYLE</java>
+          </mapping>
+        </configuration>
+        <executions>
+          <execution>
+            <id>add-license</id>
+            <phase>compile</phase>
+            <goals>
+              <goal>format</goal>
             </goals>
           </execution>
         </executions>
