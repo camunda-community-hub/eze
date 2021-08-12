@@ -204,6 +204,7 @@ class EngineClientTest {
             .addProcessModel(
                 Bpmn.createExecutableProcess("simpleProcess")
                     .startEvent()
+                    .serviceTask("task") { it.zeebeJobType("jobType") }
                     .endEvent()
                     .done(),
                 "simpleProcess.bpmn"
@@ -233,6 +234,7 @@ class EngineClientTest {
             .addProcessModel(
                 Bpmn.createExecutableProcess("simpleProcess")
                     .startEvent()
+                    .serviceTask("task") { it.zeebeJobType("jobType") }
                     .endEvent()
                     .done(),
                 "simpleProcess.bpmn"
