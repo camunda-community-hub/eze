@@ -11,6 +11,7 @@ import io.camunda.zeebe.protocol.impl.record.value.job.JobBatchRecord
 import io.camunda.zeebe.protocol.impl.record.value.job.JobRecord
 import io.camunda.zeebe.protocol.impl.record.value.message.MessageRecord
 import io.camunda.zeebe.protocol.impl.record.value.processinstance.ProcessInstanceCreationRecord
+import io.camunda.zeebe.protocol.impl.record.value.processinstance.ProcessInstanceRecord
 import io.camunda.zeebe.protocol.record.RecordType
 import io.camunda.zeebe.protocol.record.ValueType
 import io.camunda.zeebe.protocol.record.intent.*
@@ -142,6 +143,24 @@ class SimpleGateway(private val writer: LogStreamRecordWriter) : GatewayGrpc.Gat
             processInstanceCreationRecord.setVariables(variables)
         }
         return processInstanceCreationRecord
+    }
+
+    override fun cancelProcessInstance(
+        request: GatewayOuterClass.CancelProcessInstanceRequest,
+        responseObserver: StreamObserver<GatewayOuterClass.CancelProcessInstanceResponse>
+    ) {
+        val requestId = registerNewRequest(responseObserver)
+
+        prepareRecordMetadata()
+            .requestId(requestId)
+            .valueType(ValueType.PROCESS_INSTANCE)
+            .intent(ProcessInstanceIntent.CANCEL)
+
+        val processInstanceRecord = ProcessInstanceRecord()
+
+        processInstanceRecord.processInstanceKey = request.processInstanceKey
+
+        writeCommandWithKey(request.processInstanceKey, recordMetadata, processInstanceRecord)
     }
 
     override fun activateJobs(
