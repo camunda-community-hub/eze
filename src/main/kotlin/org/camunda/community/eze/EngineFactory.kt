@@ -49,7 +49,7 @@ object EngineFactory {
 
         val streamWriter = logStream.newLogStreamRecordWriter().join()
         val simpleGateway = SimpleGateway(streamWriter)
-        val server = ServerBuilder.forPort(26500).addService(simpleGateway).build()
+        val server = ServerBuilder.forPort(ZeebeEngineImpl.PORT).addService(simpleGateway).build()
 
         val db = createDatabase()
 

@@ -16,6 +16,10 @@ class ZeebeEngineImpl(
     val recordStream: () -> Iterable<Record<*>>
 ) : ZeebeEngine {
 
+    companion object {
+        const val PORT = 26500
+    }
+
     override fun start() {
         startCallback.run()
     }
@@ -30,5 +34,9 @@ class ZeebeEngineImpl(
 
     override fun createClient(): ZeebeClient {
         return ZeebeClient.newClientBuilder().usePlaintext().build()
+    }
+
+    override fun getGatewayAddress(): String {
+        return "0.0.0.0:$PORT"
     }
 }

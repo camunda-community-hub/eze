@@ -47,7 +47,6 @@ class EngineClientTest {
         zeebeEngine.stop()
     }
 
-
     @Test
     fun `should request topology`() {
         // given
@@ -78,6 +77,42 @@ class EngineClientTest {
         assertThat(partition.role).isEqualTo(PartitionBrokerRole.LEADER)
         assertThat(partition.partitionId).isEqualTo(1)
     }
+
+    @Test
+    fun `should use built in client`() {
+        // given
+        val zeebeClient = zeebeEngine.createClient()
+
+        // when
+        val topology = zeebeClient
+            .newTopologyRequest()
+            .send()
+            .join()
+
+        // then
+        assertThat(topology).isNotNull
+    }
+
+    @Test
+    fun `should use gateway address to build client`() {
+        // given
+        val zeebeClient = ZeebeClient
+            .newClientBuilder()
+            .usePlaintext()
+            .gatewayAddress(zeebeEngine.getGatewayAddress())
+            .build();
+
+        // when
+        val topology = zeebeClient
+            .newTopologyRequest()
+            .send()
+            .join()
+
+        // then
+        assertThat(topology).isNotNull
+    }
+
+
 
     @Test
     fun `should publish message`() {
