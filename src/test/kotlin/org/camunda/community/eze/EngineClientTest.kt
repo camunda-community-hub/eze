@@ -265,6 +265,16 @@ class EngineClientTest {
             .newCancelInstanceCommand(processInstance.processInstanceKey)
             .send()
             .join()
+
+        await.untilAsserted {
+            val processTerminated = zeebeEngine.records()
+                .processInstance()
+                .intent(ProcessInstanceIntent.ELEMENT_TERMINATED)
+                .ofElementType(BpmnElementType.PROCESS)
+                .firstOrNull()
+
+            assertThat(processTerminated).isNotNull
+        }
     }
 
     @Test

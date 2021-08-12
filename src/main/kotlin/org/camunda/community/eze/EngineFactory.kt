@@ -64,19 +64,6 @@ object EngineFactory {
             grpcResponseWriter
         )
 
-        val startCallback: () -> Unit = {
-            server.start()
-            streamProcessor.openAsync(false).join()
-        }
-
-        val stopCallback: () -> Unit = {
-            server.shutdownNow()
-            streamProcessor.close()
-            db.close()
-            logStream.close()
-            scheduler.stop()
-        }
-
         return ZeebeEngineImpl(
             startCallback = {
                 server.start()
