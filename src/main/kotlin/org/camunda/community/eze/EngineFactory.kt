@@ -77,6 +77,7 @@ object EngineFactory {
             },
             stopCallback = {
                 server.shutdownNow()
+                server.awaitTermination()
                 streamProcessor.close()
                 db.close()
                 logStream.close()
