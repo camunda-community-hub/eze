@@ -274,7 +274,6 @@ class EngineClientTest {
         assertThat(processInstanceResult.variablesAsMap).containsEntry("x", 1)
     }
 
-
     @Test
     fun `should fail job`() {
         // given
@@ -321,6 +320,56 @@ class EngineClientTest {
             .send()
             .join()
 
+        // TODO add assert - after records are available
+    }
 
+
+    @Test
+    fun `should throw error on job`() {
+        // given
+        val zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
+        zeebeClient
+            .newDeployCommand()
+            .addProcessModel(
+                Bpmn.createExecutableProcess("simpleProcess")
+                    .startEvent()
+                    .serviceTask("task") { it.zeebeJobType("jobType") }
+                    .endEvent()
+                    .done(),
+                "simpleProcess.bpmn")
+            .send()
+            .join()
+
+        zeebeClient.newCreateInstanceCommand().bpmnProcessId("simpleProcess")
+            .latestVersion()
+            .variables(mapOf("test" to 1))
+            .send()
+            .join()
+
+        lateinit var job : ActivatedJob
+        await.untilAsserted {
+            val activateJobsResponse = zeebeClient
+                .newActivateJobsCommand()
+                .jobType("jobType")
+                .maxJobsToActivate(32)
+                .timeout(Duration.ofMinutes(1))
+                .workerName("yolo")
+                .fetchVariables(listOf("test"))
+                .send()
+                .join()
+
+            val jobs = activateJobsResponse.jobs
+            assertThat(jobs).isNotEmpty
+            job = jobs[0]
+        }
+
+        // when - then
+        zeebeClient.newThrowErrorCommand(job.key)
+            .errorCode("0xCAFE")
+            .errorMessage("What the fuck just happened.")
+            .send()
+            .join()
+
+        // TODO add assert - after records are available
     }
 }

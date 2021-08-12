@@ -88,6 +88,7 @@ class GrpcResponseWriter(val responseCallback: (requestId: Long, response: Gener
             ValueType.JOB -> when (intent) {
                 JobIntent.COMPLETED -> createCompleteJobResponse()
                 JobIntent.FAILED -> createFailJobResponse()
+                JobIntent.ERROR_THROWN -> createJobThrowErrorResponse()
                 else -> TODO("not implemented yet")
             }
             else -> TODO("implement other types")
@@ -190,6 +191,11 @@ class GrpcResponseWriter(val responseCallback: (requestId: Long, response: Gener
 
     private fun createFailJobResponse(): GatewayOuterClass.FailJobResponse {
         return GatewayOuterClass.FailJobResponse.newBuilder()
+            .build()
+    }
+
+    private fun createJobThrowErrorResponse(): GatewayOuterClass.ThrowErrorResponse {
+        return GatewayOuterClass.ThrowErrorResponse.newBuilder()
             .build()
     }
 }

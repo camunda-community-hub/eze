@@ -16,6 +16,7 @@ import io.camunda.zeebe.protocol.record.RecordType
 import io.camunda.zeebe.protocol.record.ValueType
 import io.camunda.zeebe.protocol.record.intent.*
 import io.camunda.zeebe.util.buffer.BufferUtil
+import io.camunda.zeebe.util.buffer.BufferUtil.wrapString
 import io.camunda.zeebe.util.buffer.BufferWriter
 import io.grpc.stub.StreamObserver
 import org.agrona.concurrent.UnsafeBuffer
@@ -219,6 +220,26 @@ class SimpleGateway(private val writer: LogStreamRecordWriter) : GatewayGrpc.Gat
         val jobRecord = JobRecord()
 
         jobRecord.retries = request.retries
+        jobRecord.errorMessage = request.errorMessage
+
+        writeCommandWithKey(request.jobKey, recordMetadata, jobRecord)
+    }
+
+    override fun throwError(
+        request: GatewayOuterClass.ThrowErrorRequest,
+        responseObserver: StreamObserver<GatewayOuterClass.ThrowErrorResponse>
+    ) {
+        val requestId = registerNewRequest(responseObserver)
+
+        prepareRecordMetadata()
+            .requestId(requestId)
+            .valueType(ValueType.JOB)
+            .intent(JobIntent.THROW_ERROR)
+
+
+        val jobRecord = JobRecord()
+
+        jobRecord.setErrorCode(wrapString(request.errorCode))
         jobRecord.errorMessage = request.errorMessage
 
         writeCommandWithKey(request.jobKey, recordMetadata, jobRecord)
