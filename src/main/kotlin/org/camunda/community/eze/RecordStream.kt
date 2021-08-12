@@ -31,6 +31,10 @@ object RecordStream {
         return filter { it.intent == intent }
     }
 
+    fun <T : RecordValue> Iterable<Record<T>>.key(key: Long): Iterable<Record<T>> {
+        return filter { it.key == key }
+    }
+
     fun <T : RecordValue> Iterable<Record<*>>.ofValueType(valueType: ValueType): Iterable<Record<T>> {
         return filter { it.valueType == valueType }
             .filterIsInstance<Record<T>>()

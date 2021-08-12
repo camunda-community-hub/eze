@@ -4,10 +4,14 @@ import io.camunda.zeebe.client.ZeebeClient
 import io.camunda.zeebe.client.api.response.ActivatedJob
 import io.camunda.zeebe.model.bpmn.Bpmn
 import io.camunda.zeebe.protocol.record.intent.Intent
+import io.camunda.zeebe.protocol.record.intent.JobIntent
 import io.camunda.zeebe.protocol.record.intent.ProcessInstanceIntent
 import io.camunda.zeebe.protocol.record.value.BpmnElementType
 import org.assertj.core.api.Assertions.assertThat
 import org.awaitility.kotlin.await
+import org.camunda.community.eze.RecordStream.intent
+import org.camunda.community.eze.RecordStream.job
+import org.camunda.community.eze.RecordStream.key
 import org.camunda.community.eze.RecordStream.ofElementType
 import org.camunda.community.eze.RecordStream.ofRecordType
 import org.camunda.community.eze.RecordStream.processInstance
@@ -369,7 +373,15 @@ class EngineClientTest {
             .send()
             .join()
 
-        // TODO add assert - after records are available
+        await.untilAsserted {
+            val failedJob = zeebeEngine.records()
+                .job()
+                .key(job.key)
+                .intent(JobIntent.FAILED)
+                .firstOrNull()
+
+            assertThat(failedJob).isNotNull
+        }
     }
 
     @Test
@@ -382,6 +394,8 @@ class EngineClientTest {
                 Bpmn.createExecutableProcess("simpleProcess")
                     .startEvent()
                     .serviceTask("task") { it.zeebeJobType("jobType") }
+                    .boundaryEvent("error")
+                    .error("0xCAFE")
                     .endEvent()
                     .done(),
                 "simpleProcess.bpmn")
@@ -418,7 +432,15 @@ class EngineClientTest {
             .send()
             .join()
 
-        // TODO add assert - after records are available
+        await.untilAsserted {
+            val boundaryEvent = zeebeEngine.records()
+                .processInstance()
+                .intent(ProcessInstanceIntent.ELEMENT_COMPLETED)
+                .ofElementType(BpmnElementType.BOUNDARY_EVENT)
+                .firstOrNull()
+
+            assertThat(boundaryEvent).isNotNull
+        }
     }
 
     @Test
