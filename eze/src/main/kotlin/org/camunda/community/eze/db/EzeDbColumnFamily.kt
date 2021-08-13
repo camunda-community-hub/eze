@@ -67,10 +67,7 @@ class EzeDbColumnFamily<ColumnFamilyNames : Enum<ColumnFamilyNames>,
                 columnFamilyContext.keyLength
             )
 
-            value?.let {
-                columnFamilyContext.wrapValueView(value)
-            }
-
+            columnFamilyContext.wrapValueView(value)
         }
         return columnFamilyContext.valueView
     }
