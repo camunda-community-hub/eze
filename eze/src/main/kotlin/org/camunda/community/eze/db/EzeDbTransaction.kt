@@ -25,13 +25,13 @@ class Bytes(val byteArray: ByteArray) : Comparable<Bytes> {
             }
 
             val ourByte = byteArray[i]
-            val otherbyte = otherByteArray[i]
+            val otherByte = otherByteArray[i]
 
             when {
-                ourByte < otherbyte -> {
+                ourByte < otherByte -> {
                     return SMALLER
                 }
-                ourByte > otherbyte -> {
+                ourByte > otherByte -> {
                     return BIGGER
                 }
                 else -> {
@@ -40,18 +40,13 @@ class Bytes(val byteArray: ByteArray) : Comparable<Bytes> {
             }
         }
 
-        if (byteArray.size == otherByteArray.size) {
-            return EQUAL
-        }
-        else {
+        return if (byteArray.size == otherByteArray.size) {
+            EQUAL
+        } else {
             // the other must be a longer array then
-            return SMALLER
+            SMALLER
         }
     }
-}
-
-fun ByteArray.toBytes() : Bytes {
-    return Bytes(this)
 }
 
 fun ByteArray.toBytes(length : Int) : Bytes {
@@ -63,44 +58,6 @@ class EzeDbTransaction(val database : TreeMap<Bytes, Bytes>) : ZeebeDbTransactio
     private val transactionCache = TreeMap<Bytes, Bytes>()
     private val deletedKeys = HashSet<Bytes>()
     private var inCurrentTransaction = false
-
-    // todo add get, delete and other stuff
-//
-//    @Throws(Exception::class)
-//    fun put(
-//        columnFamilyHandle: Long,
-//        key: ByteArray?,
-//        keyLength: Int,
-//        value: ByteArray?,
-//        valueLength: Int
-//    ) {
-//        RocksDbInternal.putWithHandle.invoke(
-//            transaction, nativeHandle, key, keyLength, value, valueLength, columnFamilyHandle, false
-//        )
-//    }
-//
-//    @Throws(Exception::class)
-//    operator fun get(
-//        columnFamilyHandle: Long,
-//        readOptionsHandle: Long,
-//        key: ByteArray?,
-//        keyLength: Int
-//    ): ByteArray? {
-//        return RocksDbInternal.getWithHandle.invoke(
-//            transaction, nativeHandle, readOptionsHandle, key, keyLength, columnFamilyHandle
-//        ) as ByteArray
-//    }
-//
-//    @Throws(Exception::class)
-//    fun delete(columnFamilyHandle: Long, key: ByteArray?, keyLength: Int) {
-//        RocksDbInternal.removeWithHandle.invoke(
-//            transaction, nativeHandle, key, keyLength, columnFamilyHandle, false
-//        )
-//    }
-//
-//    fun newIterator(options: ReadOptions?, handle: ColumnFamilyHandle?): RocksIterator? {
-//        return transaction.getIterator(options, handle)
-//    }
 
     fun resetTransaction() {
         inCurrentTransaction = true
