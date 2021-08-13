@@ -10,10 +10,6 @@
 
   <name>EZE Root</name>
 
-  <prerequisites>
-    <maven>${maven.version}</maven>
-  </prerequisites>
-
   <parent>
     <groupId>org.camunda.community</groupId>
     <artifactId>eze-parent</artifactId>
