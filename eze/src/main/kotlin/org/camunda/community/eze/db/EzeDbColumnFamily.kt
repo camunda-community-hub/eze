@@ -256,7 +256,7 @@ class EzeDbColumnFamily<ColumnFamilyNames : Enum<ColumnFamilyNames>,
                 context
             ) { transaction ->
 
-                newIterator(context).seek(prefixKey!!, prefixLength).iterate().forEach {
+                transaction.newIterator().seek(prefixKey!!, prefixLength).iterate().forEach {
 
                     val keyBytes = it.key.byteArray
                     if (!startsWith(prefixKey, 0, prefixLength, keyBytes, 0, keyBytes.size)) {
