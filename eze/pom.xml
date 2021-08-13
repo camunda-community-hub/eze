@@ -13,7 +13,7 @@
   <parent>
     <groupId>org.camunda.community</groupId>
     <artifactId>eze-parent</artifactId>
-    <relativePath>../parent/pom.xml</relativePath>
+    <relativePath>../pom.xml</relativePath>
     <version>1.0.0-SNAPSHOT</version>
   </parent>
 
