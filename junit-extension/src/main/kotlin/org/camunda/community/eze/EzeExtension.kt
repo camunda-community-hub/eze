@@ -1,12 +1,14 @@
+import io.camunda.zeebe.client.ZeebeClient
 import org.camunda.community.eze.EngineFactory
 import org.camunda.community.eze.ZeebeEngine
+import org.camunda.community.eze.ZeebeEngineClock
 import org.junit.jupiter.api.extension.BeforeEachCallback
 import org.junit.jupiter.api.extension.ExtensionContext
 import org.junit.jupiter.api.extension.ExtensionContext.Store.CloseableResource
 import org.junit.platform.commons.util.ExceptionUtils
 import org.junit.platform.commons.util.ReflectionUtils
 import java.lang.reflect.Field
-import java.util.function.Consumer
+import kotlin.reflect.KClass
 
 class EzeExtension : BeforeEachCallback {
 
@@ -17,23 +19,36 @@ class EzeExtension : BeforeEachCallback {
     }
 
     private fun injectFields(context: ExtensionContext, testInstance: Any, testClass: Class<*>) {
-        ReflectionUtils.findFields(
+        mapOf(
+            ZeebeEngine::class to EzeExtensionState::zeebe,
+            ZeebeClient::class to { it.zeebe.createClient() },
+            ZeebeEngineClock::class to { it.zeebe.clock() }
+        ).forEach { (fieldType, fieldValue) ->
+            injectFields(context, testInstance, testClass, fieldType, fieldValue)
+        }
+    }
+
+    private fun injectFields(
+        context: ExtensionContext,
+        testInstance: Any,
+        testClass: Class<*>,
+        fieldType: KClass<*>,
+        fieldValue: (EzeExtensionState) -> Any
+    ) {
+        val fields = ReflectionUtils.findFields(
             testClass,
-            { field: Field ->
-                ReflectionUtils.isNotStatic(field) &&
-                        field.type == ZeebeEngine::class.java
-            },
+            { field: Field -> ReflectionUtils.isNotStatic(field) && field.type == fieldType.java },
             ReflectionUtils.HierarchyTraversalMode.TOP_DOWN
         )
-            .forEach(
-                Consumer { field: Field ->
-                    try {
-                        ReflectionUtils.makeAccessible(field)[testInstance] =
-                            lookupOrCreate(context).zeebe
-                    } catch (t: Throwable) {
-                        ExceptionUtils.throwAsUncheckedException(t)
-                    }
-                })
+
+        fields.forEach { field: Field ->
+            try {
+                ReflectionUtils.makeAccessible(field)[testInstance] =
+                    fieldValue(lookupOrCreate(context))
+            } catch (t: Throwable) {
+                ExceptionUtils.throwAsUncheckedException(t)
+            }
+        }
     }
 
     private fun lookupOrCreate(context: ExtensionContext): EzeExtensionState {
