@@ -112,12 +112,10 @@ class EzeDbTransaction(val database : TreeMap<Bytes, Bytes>) : ZeebeDbTransactio
     }
 
     fun newIterator(): EzeDbIterator {
-//        val result = (transactionCache.asSequence() + database.asSequence()).distinct()
-//            .groupBy({ it.key }, { it.value })
-//            .mapValues { it.value.joinToString(",") }
+        val map = TreeMap<Bytes, Bytes>()
+        map.putAll(database)
+        map.putAll(transactionCache)
 
-        return EzeDbIterator(transactionCache)
-
-//        TODO("Not yet implemented")
+        return EzeDbIterator(map)
     }
 }
