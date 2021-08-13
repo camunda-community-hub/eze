@@ -9,17 +9,6 @@ import java.util.function.BiConsumer
 import java.util.function.Consumer
 
 
-internal fun interface TransactionConsumer {
-    /**
-     * Consumes a transaction, in order to make sure that a transaction is open.
-     *
-     * @param transaction the to consumed transaction
-     * @throws Exception if an unexpected exception occurs, on opening a new transaction for example
-     */
-    @Throws(Exception::class)
-    fun run(transaction: EzeDbTransaction)
-}
-
 class EzeDbColumnFamily<ColumnFamilyNames : Enum<ColumnFamilyNames>,
         KeyType : DbKey,
         ValueType : DbValue>(
