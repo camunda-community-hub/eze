@@ -21,14 +21,11 @@ import io.camunda.zeebe.protocol.record.value.BpmnElementType
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.awaitility.kotlin.await
-import org.camunda.community.eze.RecordStream.intent
-import org.camunda.community.eze.RecordStream.job
-import org.camunda.community.eze.RecordStream.key
-import org.camunda.community.eze.RecordStream.ofElementType
-import org.camunda.community.eze.RecordStream.ofRecordType
 import org.camunda.community.eze.RecordStream.print
-import org.camunda.community.eze.RecordStream.processInstance
-import org.camunda.community.eze.RecordStream.timer
+import org.camunda.community.eze.RecordStream.withElementType
+import org.camunda.community.eze.RecordStream.withIntent
+import org.camunda.community.eze.RecordStream.withKey
+import org.camunda.community.eze.RecordStream.withRecordType
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -270,10 +267,10 @@ class EngineClientTest {
             .join()
 
         await.untilAsserted {
-            val processTerminated = zeebeEngine.records()
-                .processInstance()
-                .intent(ProcessInstanceIntent.ELEMENT_TERMINATED)
-                .ofElementType(BpmnElementType.PROCESS)
+            val processTerminated = zeebeEngine
+                .processInstanceRecords()
+                .withIntent(ProcessInstanceIntent.ELEMENT_TERMINATED)
+                .withElementType(BpmnElementType.PROCESS)
                 .firstOrNull()
 
             assertThat(processTerminated).isNotNull
@@ -424,16 +421,17 @@ class EngineClientTest {
                     .join()
             }.open().use {
 
-            // when
-            val processInstanceResult = zeebeClient.newCreateInstanceCommand().bpmnProcessId("process")
-                .latestVersion()
-                .withResult()
-                .send()
-                .join()
+                // when
+                val processInstanceResult =
+                    zeebeClient.newCreateInstanceCommand().bpmnProcessId("process")
+                        .latestVersion()
+                        .withResult()
+                        .send()
+                        .join()
 
-            // then
-            assertThat(processInstanceResult.variablesAsMap).containsEntry("x", 1)
-        }
+                // then
+                assertThat(processInstanceResult.variablesAsMap).containsEntry("x", 1)
+            }
     }
 
     @Test
@@ -483,10 +481,10 @@ class EngineClientTest {
             .join()
 
         await.untilAsserted {
-            val failedJob = zeebeEngine.records()
-                .job()
-                .key(job.key)
-                .intent(JobIntent.FAILED)
+            val failedJob = zeebeEngine
+                .jobRecords()
+                .withKey(job.key)
+                .withIntent(JobIntent.FAILED)
                 .firstOrNull()
 
             assertThat(failedJob).isNotNull
@@ -542,10 +540,10 @@ class EngineClientTest {
             .join()
 
         await.untilAsserted {
-            val boundaryEvent = zeebeEngine.records()
-                .processInstance()
-                .intent(ProcessInstanceIntent.ELEMENT_COMPLETED)
-                .ofElementType(BpmnElementType.BOUNDARY_EVENT)
+            val boundaryEvent = zeebeEngine
+                .processInstanceRecords()
+                .withIntent(ProcessInstanceIntent.ELEMENT_COMPLETED)
+                .withElementType(BpmnElementType.BOUNDARY_EVENT)
                 .firstOrNull()
 
             assertThat(boundaryEvent).isNotNull
@@ -599,10 +597,10 @@ class EngineClientTest {
             .join()
 
         await.untilAsserted {
-            val retriesUpdated = zeebeEngine.records()
-                .job()
-                .key(job.key)
-                .intent(JobIntent.RETRIES_UPDATED)
+            val retriesUpdated = zeebeEngine
+                .jobRecords()
+                .withKey(job.key)
+                .withIntent(JobIntent.RETRIES_UPDATED)
                 .firstOrNull()
 
             assertThat(retriesUpdated).isNotNull
@@ -635,10 +633,10 @@ class EngineClientTest {
 
         // then
         await.untilAsserted {
-            val processRecords = zeebeEngine.records()
-                .processInstance()
-                .ofRecordType(events = true)
-                .ofElementType(BpmnElementType.PROCESS)
+            val processRecords = zeebeEngine
+                .processInstanceRecords()
+                .withRecordType(events = true)
+                .withElementType(BpmnElementType.PROCESS)
                 .take(4)
 
             assertThat(processRecords)
@@ -686,10 +684,10 @@ class EngineClientTest {
 
         // then
         await.untilAsserted {
-            val processRecords = zeebeEngine.records()
-                .processInstance()
-                .ofElementType(BpmnElementType.PROCESS)
-                .intent(ProcessInstanceIntent.ELEMENT_COMPLETED)
+            val processRecords = zeebeEngine
+                .processInstanceRecords()
+                .withElementType(BpmnElementType.PROCESS)
+                .withIntent(ProcessInstanceIntent.ELEMENT_COMPLETED)
                 .firstOrNull()
 
             assertThat(processRecords).isNotNull
@@ -723,9 +721,9 @@ class EngineClientTest {
             .join()
 
         await.untilAsserted {
-            val timerCreated = zeebeEngine.records()
-                .timer()
-                .intent(TimerIntent.CREATED)
+            val timerCreated = zeebeEngine
+                .timerRecords()
+                .withIntent(TimerIntent.CREATED)
                 .firstOrNull()
 
             assertThat(timerCreated).isNotNull
@@ -735,10 +733,10 @@ class EngineClientTest {
         zeebeEngine.clock().increaseTime(Duration.ofDays(1))
 
         await.untilAsserted {
-            val processCompleted = zeebeEngine.records()
-                .processInstance()
-                .ofElementType(BpmnElementType.PROCESS)
-                .intent(ProcessInstanceIntent.ELEMENT_COMPLETED)
+            val processCompleted = zeebeEngine
+                .processInstanceRecords()
+                .withElementType(BpmnElementType.PROCESS)
+                .withIntent(ProcessInstanceIntent.ELEMENT_COMPLETED)
                 .firstOrNull()
 
             assertThat(processCompleted).isNotNull

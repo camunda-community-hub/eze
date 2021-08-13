@@ -10,10 +10,10 @@ package org.camunda.community.eze
 import io.camunda.zeebe.protocol.record.Record
 import io.camunda.zeebe.protocol.record.RecordType
 import io.camunda.zeebe.protocol.record.RecordValue
-import io.camunda.zeebe.protocol.record.ValueType
 import io.camunda.zeebe.protocol.record.intent.Intent
-import io.camunda.zeebe.protocol.record.value.*
-import io.camunda.zeebe.protocol.record.value.deployment.Process
+import io.camunda.zeebe.protocol.record.value.BpmnElementType
+import io.camunda.zeebe.protocol.record.value.JobRecordValue
+import io.camunda.zeebe.protocol.record.value.ProcessInstanceRecordValue
 import io.camunda.zeebe.test.util.record.CompactRecordLogger
 
 object RecordStream {
@@ -28,7 +28,7 @@ object RecordStream {
         }
     }
 
-    fun <T : RecordValue> Iterable<Record<T>>.ofRecordType(
+    fun <T : RecordValue> Iterable<Record<T>>.withRecordType(
         commands: Boolean = false,
         events: Boolean = false,
         rejections: Boolean = false
@@ -41,84 +41,28 @@ object RecordStream {
     }
 
     fun <T : RecordValue> Iterable<Record<T>>.events(): Iterable<Record<T>> {
-        return ofRecordType(events = true)
+        return withRecordType(events = true)
     }
 
-    fun <T : RecordValue> Iterable<Record<T>>.intent(intent: Intent): Iterable<Record<T>> {
+    fun <T : RecordValue> Iterable<Record<T>>.withIntent(intent: Intent): Iterable<Record<T>> {
         return filter { it.intent == intent }
     }
 
-    fun <T : RecordValue> Iterable<Record<T>>.key(key: Long): Iterable<Record<T>> {
+    fun <T : RecordValue> Iterable<Record<T>>.withKey(key: Long): Iterable<Record<T>> {
         return filter { it.key == key }
     }
 
-    fun <T : RecordValue> Iterable<Record<*>>.ofValueType(valueType: ValueType): Iterable<Record<T>> {
-        return filter { it.valueType == valueType }
-            .filterIsInstance<Record<T>>()
-    }
 
-    fun Iterable<Record<*>>.processInstance(): Iterable<Record<ProcessInstanceRecordValue>> {
-        return ofValueType(ValueType.PROCESS_INSTANCE)
-    }
-
-    fun Iterable<Record<*>>.job(): Iterable<Record<JobRecordValue>> {
-        return ofValueType(ValueType.JOB)
-    }
-
-    fun Iterable<Record<*>>.jobBatch(): Iterable<Record<JobBatchRecordValue>> {
-        return ofValueType(ValueType.JOB_BATCH)
-    }
-
-    fun Iterable<Record<*>>.deployment(): Iterable<Record<DeploymentRecordValue>> {
-        return ofValueType(ValueType.DEPLOYMENT)
-    }
-
-    fun Iterable<Record<*>>.process(): Iterable<Record<Process>> {
-        return ofValueType(ValueType.PROCESS)
-    }
-
-    fun Iterable<Record<*>>.variable(): Iterable<Record<VariableRecordValue>> {
-        return ofValueType(ValueType.VARIABLE)
-    }
-
-    fun Iterable<Record<*>>.variableDocument(): Iterable<Record<VariableDocumentRecordValue>> {
-        return ofValueType(ValueType.VARIABLE_DOCUMENT)
-    }
-
-    fun Iterable<Record<*>>.incident(): Iterable<Record<IncidentRecordValue>> {
-        return ofValueType(ValueType.INCIDENT)
-    }
-
-    fun Iterable<Record<*>>.timer(): Iterable<Record<TimerRecordValue>> {
-        return ofValueType(ValueType.TIMER)
-    }
-
-    fun Iterable<Record<*>>.message(): Iterable<Record<MessageRecordValue>> {
-        return ofValueType(ValueType.MESSAGE)
-    }
-
-    fun Iterable<Record<*>>.messageSubscription(): Iterable<Record<MessageSubscriptionRecordValue>> {
-        return ofValueType(ValueType.MESSAGE_SUBSCRIPTION)
-    }
-
-    fun Iterable<Record<*>>.messageStartEventSubscription(): Iterable<Record<MessageStartEventSubscriptionRecordValue>> {
-        return ofValueType(ValueType.MESSAGE_START_EVENT_SUBSCRIPTION)
-    }
-
-    fun Iterable<Record<*>>.processMessageSubscription(): Iterable<Record<ProcessMessageSubscriptionRecordValue>> {
-        return ofValueType(ValueType.PROCESS_MESSAGE_SUBSCRIPTION)
-    }
-
-    fun Iterable<Record<ProcessInstanceRecordValue>>.ofElementType(elementType: BpmnElementType): Iterable<Record<ProcessInstanceRecordValue>> {
+    fun Iterable<Record<ProcessInstanceRecordValue>>.withElementType(elementType: BpmnElementType): Iterable<Record<ProcessInstanceRecordValue>> {
         return filter { it.value.bpmnElementType == elementType }
     }
 
-    fun Iterable<Record<ProcessInstanceRecordValue>>.ofProcessInstance(processInstanceKey: Long): Iterable<Record<ProcessInstanceRecordValue>> {
+    fun Iterable<Record<ProcessInstanceRecordValue>>.withProcessInstanceKey(processInstanceKey: Long): Iterable<Record<ProcessInstanceRecordValue>> {
         return filter { it.value.processInstanceKey == processInstanceKey }
     }
 
 
-    fun Iterable<Record<JobRecordValue>>.ofJobType(jobType: String): Iterable<Record<JobRecordValue>> {
+    fun Iterable<Record<JobRecordValue>>.withJobType(jobType: String): Iterable<Record<JobRecordValue>> {
         return filter { it.value.type == jobType }
     }
 

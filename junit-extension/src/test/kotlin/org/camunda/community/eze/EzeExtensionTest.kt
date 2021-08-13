@@ -6,19 +6,17 @@ import io.camunda.zeebe.protocol.record.intent.ProcessIntent
 import io.camunda.zeebe.protocol.record.intent.TimerIntent
 import org.assertj.core.api.Assertions.assertThat
 import org.awaitility.kotlin.await
-import org.camunda.community.eze.RecordStream.intent
-import org.camunda.community.eze.RecordStream.process
-import org.camunda.community.eze.RecordStream.timer
+import org.camunda.community.eze.RecordStream.withIntent
 import org.junit.jupiter.api.Test
 import java.time.Duration
 
 @EmbeddedZeebeEngine
 class EzeExtensionTest {
 
-    lateinit var zeebe: ZeebeEngine
-    lateinit var client: ZeebeClient
-    lateinit var clock: ZeebeEngineClock
-    lateinit var recordStream: RecordStreamSource
+    private lateinit var zeebe: ZeebeEngine
+    private lateinit var client: ZeebeClient
+    private lateinit var clock: ZeebeEngineClock
+    private lateinit var recordStream: RecordStreamSource
 
     @Test
     fun `should inject engine`() {
@@ -69,9 +67,9 @@ class EzeExtensionTest {
             .join()
 
         await.untilAsserted {
-            val timerCreated = zeebe.records()
-                .timer()
-                .intent(TimerIntent.CREATED)
+            val timerCreated = zeebe
+                .timerRecords()
+                .withIntent(TimerIntent.CREATED)
                 .firstOrNull()
 
             assertThat(timerCreated).isNotNull
@@ -82,9 +80,9 @@ class EzeExtensionTest {
 
         // then
         await.untilAsserted {
-            val timerTriggered = zeebe.records()
-                .timer()
-                .intent(TimerIntent.TRIGGERED)
+            val timerTriggered = zeebe
+                .timerRecords()
+                .withIntent(TimerIntent.TRIGGERED)
                 .firstOrNull()
 
             assertThat(timerTriggered).isNotNull
@@ -104,9 +102,9 @@ class EzeExtensionTest {
 
         // then
         await.untilAsserted {
-            val processCreated = recordStream.records()
-                .process()
-                .intent(ProcessIntent.CREATED)
+            val processCreated = recordStream
+                .processRecords()
+                .withIntent(ProcessIntent.CREATED)
                 .firstOrNull()
 
             assertThat(processCreated).isNotNull
