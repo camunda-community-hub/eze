@@ -26,6 +26,8 @@ import io.camunda.zeebe.util.sched.ActorSchedulingService
 import io.camunda.zeebe.util.sched.clock.ActorClock
 import io.camunda.zeebe.util.sched.clock.ControlledActorClock
 import io.grpc.ServerBuilder
+import org.camunda.community.eze.db.EzeDbFactory
+import org.camunda.community.eze.db.EzeZeebeDbFactory
 import java.nio.file.Files
 import java.util.concurrent.CompletableFuture
 
@@ -116,7 +118,7 @@ object EngineFactory {
     }
 
     private fun createDatabase(): ZeebeDb<ZbColumnFamilies> {
-        val zeebeDbFactory = DefaultZeebeDbFactory.defaultFactory()
+        val zeebeDbFactory = EzeZeebeDbFactory.getDefaultFactory<ZbColumnFamilies>()
         return zeebeDbFactory.createDb(Files.createTempDirectory("zeebeDb").toFile())
     }
 

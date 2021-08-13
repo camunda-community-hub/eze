@@ -5,15 +5,14 @@
  * Licensed under the Zeebe Community License 1.1. You may not use this file
  * except in compliance with the Zeebe Community License 1.1.
  */
-package org.camunda.community.eze.db;
+package org.camunda.community.eze.db
 
-import io.camunda.zeebe.db.ZeebeDbFactory;
-import io.camunda.zeebe.db.impl.rocksdb.ZeebeRocksDbFactory;
+import io.camunda.zeebe.db.ZeebeDbFactory
+import org.camunda.community.eze.db.EzeDbFactory.Companion.newFactory
 
-public final class DefaultZeebeDbFactory {
-
-  public static <ColumnFamilyType extends Enum<ColumnFamilyType>>
-      ZeebeDbFactory<ColumnFamilyType> getDefaultFactory() {
-    return EzeDbFactory.Companion.newFactory();
-  }
+object EzeZeebeDbFactory {
+    @JvmStatic
+    fun <ColumnFamilyType : Enum<ColumnFamilyType>> getDefaultFactory(): ZeebeDbFactory<ColumnFamilyType> {
+        return newFactory()
+    }
 }

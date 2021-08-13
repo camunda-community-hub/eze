@@ -26,7 +26,7 @@ public final class ColumnFamilyTest {
 
   @Rule public final TemporaryFolder temporaryFolder = new TemporaryFolder();
   private final ZeebeDbFactory<DefaultColumnFamily> dbFactory =
-      DefaultZeebeDbFactory.getDefaultFactory();
+      EzeZeebeDbFactory.getDefaultFactory();
   private ZeebeDb<DefaultColumnFamily> zeebeDb;
   private ColumnFamily<DbLong, DbLong> columnFamily;
   private DbLong key;

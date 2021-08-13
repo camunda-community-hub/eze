@@ -28,7 +28,7 @@ public final class DbTransactionTest {
 
   @Rule public final TemporaryFolder temporaryFolder = new TemporaryFolder();
   private final ZeebeDbFactory<ColumnFamilies> dbFactory =
-      DefaultZeebeDbFactory.getDefaultFactory();
+      EzeZeebeDbFactory.getDefaultFactory();
 
   private TransactionContext transactionContext;
 
