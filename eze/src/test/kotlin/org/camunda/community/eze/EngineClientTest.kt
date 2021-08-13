@@ -29,9 +29,10 @@ import org.camunda.community.eze.RecordStream.withRecordType
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.ExtendWith
 import java.time.Duration
 
-
+@ExtendWith(PrintRecordStreamExtension::class)
 class EngineClientTest {
 
     private lateinit var zeebeEngine: ZeebeEngine
@@ -40,6 +41,8 @@ class EngineClientTest {
     fun `setup grpc server`() {
         zeebeEngine = EngineFactory.create()
         zeebeEngine.start()
+
+        PrintRecordStreamExtension.zeebeEngine = zeebeEngine
     }
 
     @AfterEach
