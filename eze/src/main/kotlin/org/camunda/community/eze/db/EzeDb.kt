@@ -1,6 +1,7 @@
 package org.camunda.community.eze.db
 
 import io.camunda.zeebe.db.*
+import io.camunda.zeebe.db.impl.DbNil
 import io.camunda.zeebe.engine.state.ZbColumnFamilies
 import java.io.File
 import java.util.*
@@ -34,7 +35,7 @@ class EzeDb<ColumnFamilyType : Enum<ColumnFamilyType>> : ZeebeDb<ColumnFamilyTyp
         TODO("Not yet implemented")
     }
 
-    override fun isEmpty(column: ColumnFamilyType, context: TransactionContext?): Boolean {
-        TODO("Not yet implemented")
+    override fun isEmpty(column: ColumnFamilyType, context: TransactionContext): Boolean {
+        return createColumnFamily(column, context, DbNullKey.INSTANCE, DbNil.INSTANCE).isEmpty
     }
 }
