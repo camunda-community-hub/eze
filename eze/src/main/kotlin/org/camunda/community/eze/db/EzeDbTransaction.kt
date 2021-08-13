@@ -60,6 +60,7 @@ class EzeDbTransaction(val database : TreeMap<Bytes, Bytes>) : ZeebeDbTransactio
     private var inCurrentTransaction = false
 
     fun resetTransaction() {
+        rollback()
         inCurrentTransaction = true
     }
 

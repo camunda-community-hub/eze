@@ -25,7 +25,7 @@ class EzeDbTransactionContext(val database : TreeMap<Bytes, Bytes>) : Transactio
 
     override fun getCurrentTransaction(): ZeebeDbTransaction {
         if (!transaction.isInCurrentTransaction()) {
-            transaction.rollback()
+            transaction.resetTransaction()
         }
         return transaction
     }
