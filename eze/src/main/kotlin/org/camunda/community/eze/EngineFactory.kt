@@ -63,20 +63,20 @@ object EngineFactory {
         val streamWriter = logStream.newLogStreamRecordWriter().join()
         streamWritersByPartition[partitionId] = streamWriter
 
-        val simpleGateway = SimpleGateway(streamWriter)
-        val server = ServerBuilder.forPort(ZeebeEngineImpl.PORT).addService(simpleGateway).build()
+        val gateway = GrpcToLogStreamGateway(streamWriter)
+        val grpcServer = ServerBuilder.forPort(ZeebeEngineImpl.PORT).addService(gateway).build()
 
-        val db = createDatabase()
+        val zeebeDb = createDatabase()
 
         val grpcResponseWriter = GrpcResponseWriter(
-            responseCallback = simpleGateway::responseCallback,
-            errorCallback = simpleGateway::errorCallback
+            responseCallback = gateway::responseCallback,
+            errorCallback = gateway::errorCallback
         )
 
         val streamProcessor = createStreamProcessor(
             partitionCount = partitionCount,
             logStream = logStream,
-            database = db,
+            database = zeebeDb,
             scheduler = scheduler,
             grpcResponseWriter
         )
@@ -91,17 +91,17 @@ object EngineFactory {
 
         return ZeebeEngineImpl(
             startCallback = {
-                server.start()
+                grpcServer.start()
                 streamProcessor.openAsync(false).join()
                 exporterRunner.open()
             },
             stopCallback = {
-                server.shutdownNow()
-                server.awaitTermination()
-                simpleGateway.close()
+                grpcServer.shutdownNow()
+                grpcServer.awaitTermination()
+                gateway.close()
                 exporterRunner.close()
                 streamProcessor.close()
-                db.close()
+                zeebeDb.close()
                 logStream.close()
                 scheduler.stop()
             },
