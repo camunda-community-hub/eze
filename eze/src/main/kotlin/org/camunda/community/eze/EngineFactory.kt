@@ -11,7 +11,6 @@ import io.camunda.zeebe.db.ZeebeDb
 import io.camunda.zeebe.engine.processing.EngineProcessors
 import io.camunda.zeebe.engine.processing.streamprocessor.StreamProcessor
 import io.camunda.zeebe.engine.processing.streamprocessor.TypedEventRegistry
-import io.camunda.zeebe.engine.state.DefaultZeebeDbFactory
 import io.camunda.zeebe.engine.state.ZbColumnFamilies
 import io.camunda.zeebe.engine.state.appliers.EventAppliers
 import io.camunda.zeebe.logstreams.log.LogStream
@@ -26,10 +25,10 @@ import io.camunda.zeebe.util.sched.ActorSchedulingService
 import io.camunda.zeebe.util.sched.clock.ActorClock
 import io.camunda.zeebe.util.sched.clock.ControlledActorClock
 import io.grpc.ServerBuilder
-import org.camunda.community.eze.db.EzeDbFactory
 import org.camunda.community.eze.db.EzeZeebeDbFactory
 import java.nio.file.Files
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.Executors
 
 object EngineFactory {
 
@@ -79,6 +78,7 @@ object EngineFactory {
             stopCallback = {
                 server.shutdownNow()
                 server.awaitTermination()
+                simpleGateway.close()
                 streamProcessor.close()
                 db.close()
                 logStream.close()
