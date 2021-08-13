@@ -265,7 +265,7 @@ class EzeDbColumnFamily<ColumnFamilyNames : Enum<ColumnFamilyNames>,
                     val shouldVisitNext = visit(keyInstance, valueInstance, visitor, it)
 
                     if (!shouldVisitNext) {
-                        return@forEach
+                        return@ensureInOpenTransaction
                     }
 
 
