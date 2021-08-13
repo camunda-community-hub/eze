@@ -27,29 +27,8 @@ class EzeDbColumnFamily<ColumnFamilyNames : Enum<ColumnFamilyNames>,
     ) {
         context.runInTransaction {
             operation.run(context.currentTransaction as EzeDbTransaction)
-//            operation.run { context.currentTransaction
-//            }
         }
     }
-
-
-//    override fun put(key: KeyType, value: ValueType) {
-//        ensureInOpenTransaction(context) {
-//            columnFamilyContext.writeKey(key)
-//            columnFamilyContext.writeValue(value)
-//
-//
-//
-//        }
-//        TODO("Not yet implemented")
-//    }
-
-//
-//    private fun ensureInOpenTransaction(
-//        context: TransactionContext, operation: TransactionConsumer
-//    ) {
-//        context.runInTransaction { operation.run(context.currentTransaction as ZeebeTransaction) }
-//    }
 
     override fun put(key: KeyType, value: ValueType) {
         ensureInOpenTransaction(
