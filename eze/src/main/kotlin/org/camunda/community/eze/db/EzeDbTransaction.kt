@@ -76,12 +76,14 @@ class EzeDbTransaction(val database : TreeMap<Bytes, Bytes>) : ZeebeDbTransactio
         inCurrentTransaction = false
         database.putAll(transactionCache)
         deletedKeys.forEach { database.remove(it) }
+        deletedKeys.clear()
         transactionCache.clear()
     }
 
     override fun rollback() {
         inCurrentTransaction = false
         transactionCache.clear()
+        deletedKeys.clear()
     }
 
     fun close() {
