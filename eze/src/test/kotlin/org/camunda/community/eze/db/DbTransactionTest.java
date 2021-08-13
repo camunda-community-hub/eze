@@ -92,6 +92,26 @@ public final class DbTransactionTest {
   }
 
   @Test
+  public void shouldNotGetPreviousValue() {
+    // given
+    oneKey.wrapLong(123);
+    oneValue.wrapLong(456);
+
+    transactionContext.runInTransaction(
+        () -> {
+          oneColumnFamily.put(oneKey, oneValue);
+          oneColumnFamily.get(oneKey);
+          oneKey.wrapLong(-1);
+
+          // when
+          final DbLong zbLong = oneColumnFamily.get(oneKey);
+
+          // then
+          assertThat(zbLong).isNull();
+        });
+  }
+
+  @Test
   public void shouldStartNewTransaction() throws Exception {
     // given
     oneKey.wrapLong(1);
