@@ -8,7 +8,7 @@
     <groupId>org.camunda.community</groupId>
     <artifactId>eze-root</artifactId>
     <relativePath>../pom.xml</relativePath>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>0.1.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>eze-junit-extension</artifactId>
@@ -19,7 +19,7 @@
     <dependency>
       <groupId>org.camunda.community</groupId>
       <artifactId>eze</artifactId>
-      <version>1.0.0-SNAPSHOT</version>
+      <version>0.1.0-SNAPSHOT</version>
     </dependency>
 
     <dependency>
