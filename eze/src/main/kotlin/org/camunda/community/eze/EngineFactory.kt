@@ -15,6 +15,7 @@ import io.camunda.zeebe.engine.state.DefaultZeebeDbFactory
 import io.camunda.zeebe.engine.state.ZbColumnFamilies
 import io.camunda.zeebe.engine.state.appliers.EventAppliers
 import io.camunda.zeebe.logstreams.log.LogStream
+import io.camunda.zeebe.logstreams.log.LogStreamReader
 import io.camunda.zeebe.logstreams.storage.LogStorage
 import io.camunda.zeebe.protocol.impl.record.CopiedRecord
 import io.camunda.zeebe.protocol.impl.record.RecordMetadata
@@ -66,6 +67,8 @@ object EngineFactory {
             grpcResponseWriter
         )
 
+        val reader = logStream.newLogStreamReader().join()
+
         return ZeebeEngineImpl(
             startCallback = {
                 server.start()
@@ -79,7 +82,7 @@ object EngineFactory {
                 logStream.close()
                 scheduler.stop()
             },
-            recordStream = { createRecordStream(logStream) },
+            recordStream = { createRecordStream(reader) },
             clock = clock
         )
     }
@@ -159,8 +162,8 @@ object EngineFactory {
         return ControlledActorClock()
     }
 
-    private fun createRecordStream(logStream: LogStream): Iterable<Record<*>> {
-        val reader = logStream.newLogStreamReader().join()
+    private fun createRecordStream(reader: LogStreamReader): Iterable<Record<*>> {
+
         reader.seekToFirstEvent()
 
         val records = mutableListOf<Record<*>>()

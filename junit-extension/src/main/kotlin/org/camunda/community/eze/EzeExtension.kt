@@ -1,21 +1,31 @@
 import io.camunda.zeebe.client.ZeebeClient
 import org.camunda.community.eze.EngineFactory
+import org.camunda.community.eze.RecordStream.print
 import org.camunda.community.eze.RecordStreamSource
 import org.camunda.community.eze.ZeebeEngine
 import org.camunda.community.eze.ZeebeEngineClock
 import org.junit.jupiter.api.extension.BeforeEachCallback
 import org.junit.jupiter.api.extension.ExtensionContext
 import org.junit.jupiter.api.extension.ExtensionContext.Store.CloseableResource
+import org.junit.jupiter.api.extension.TestWatcher
 import org.junit.platform.commons.util.ExceptionUtils
 import org.junit.platform.commons.util.ReflectionUtils
 import java.lang.reflect.Field
 import kotlin.reflect.KClass
 
-class EzeExtension : BeforeEachCallback {
+class EzeExtension : BeforeEachCallback, TestWatcher {
 
     override fun beforeEach(context: ExtensionContext?) {
         context?.requiredTestInstances?.allInstances?.forEach {
             injectFields(context, it, it.javaClass)
+        }
+    }
+
+    override fun testFailed(context: ExtensionContext?, cause: Throwable?) {
+        context?.let {
+            println("===== Test failed! Printing records from the log stream =====")
+            lookupOrCreate(it).zeebe.records().print(compact = true)
+            println("----------")
         }
     }
 
