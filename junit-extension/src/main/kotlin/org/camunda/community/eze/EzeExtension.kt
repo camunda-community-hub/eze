@@ -1,5 +1,6 @@
 import io.camunda.zeebe.client.ZeebeClient
 import org.camunda.community.eze.EngineFactory
+import org.camunda.community.eze.RecordStreamSource
 import org.camunda.community.eze.ZeebeEngine
 import org.camunda.community.eze.ZeebeEngineClock
 import org.junit.jupiter.api.extension.BeforeEachCallback
@@ -22,7 +23,8 @@ class EzeExtension : BeforeEachCallback {
         mapOf(
             ZeebeEngine::class to EzeExtensionState::zeebe,
             ZeebeClient::class to { it.zeebe.createClient() },
-            ZeebeEngineClock::class to { it.zeebe.clock() }
+            ZeebeEngineClock::class to { it.zeebe.clock() },
+            RecordStreamSource::class to EzeExtensionState::zeebe
         ).forEach { (fieldType, fieldValue) ->
             injectFields(context, testInstance, testClass, fieldType, fieldValue)
         }

@@ -8,13 +8,12 @@
 package org.camunda.community.eze
 
 import io.camunda.zeebe.client.ZeebeClient
-import io.camunda.zeebe.protocol.record.Record
 
-interface ZeebeEngine {
+interface ZeebeEngine : RecordStreamSource {
+
     fun start()
-    fun stop()
 
-    fun records(): Iterable<Record<*>>
+    fun stop()
 
     fun createClient(): ZeebeClient
 
