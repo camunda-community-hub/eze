@@ -13,6 +13,7 @@ import io.camunda.zeebe.engine.processing.streamprocessor.StreamProcessor
 import io.camunda.zeebe.engine.processing.streamprocessor.TypedEventRegistry
 import io.camunda.zeebe.engine.state.ZbColumnFamilies
 import io.camunda.zeebe.engine.state.appliers.EventAppliers
+import io.camunda.zeebe.exporter.api.Exporter
 import io.camunda.zeebe.logstreams.log.LogStream
 import io.camunda.zeebe.logstreams.log.LogStreamReader
 import io.camunda.zeebe.logstreams.storage.LogStorage
@@ -28,7 +29,6 @@ import io.grpc.ServerBuilder
 import org.camunda.community.eze.db.EzeZeebeDbFactory
 import java.nio.file.Files
 import java.util.concurrent.CompletableFuture
-import java.util.concurrent.Executors
 
 object EngineFactory {
 
@@ -36,7 +36,7 @@ object EngineFactory {
         TODO("return record writer")
     }
 
-    fun create(): ZeebeEngine {
+    fun create(exporters: Iterable<Exporter> = emptyList()): ZeebeEngine {
 
         val clock = createActorClock()
 
@@ -70,15 +70,23 @@ object EngineFactory {
 
         val reader = logStream.newLogStreamReader().join()
 
+        val exporterRunner = ExporterRunner(
+            exporters = exporters,
+            reader = { position -> createRecordStream(reader, position) }
+        )
+        logStream.registerRecordAvailableListener(exporterRunner::onRecordsAvailable)
+
         return ZeebeEngineImpl(
             startCallback = {
                 server.start()
                 streamProcessor.openAsync(false).join()
+                exporterRunner.open()
             },
             stopCallback = {
                 server.shutdownNow()
                 server.awaitTermination()
                 simpleGateway.close()
+                exporterRunner.close()
                 streamProcessor.close()
                 db.close()
                 logStream.close()
@@ -164,9 +172,14 @@ object EngineFactory {
         return ControlledActorClock()
     }
 
-    private fun createRecordStream(reader: LogStreamReader): Iterable<Record<*>> {
+    private fun createRecordStream(
+        reader: LogStreamReader,
+        position: Long = -1
+    ): Iterable<Record<*>> {
 
-        reader.seekToFirstEvent()
+        position.takeIf { it > 0 }
+            ?.let { reader.seekToNextEvent(it) }
+            ?: reader.seekToFirstEvent()
 
         val records = mutableListOf<Record<*>>()
 
