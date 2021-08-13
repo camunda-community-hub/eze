@@ -12,8 +12,8 @@
   </parent>
 
   <groupId>org.camunda.community</groupId>
-  <artifactId>junit-extension</artifactId>
-
+  <artifactId>eze-junit-extension</artifactId>
+  <name>EZE - JUnit Extension</name>
 
   <dependencies>
 
