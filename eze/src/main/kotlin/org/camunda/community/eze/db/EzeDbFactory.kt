@@ -1,4 +1,19 @@
 package org.camunda.community.eze.db
 
-class EzeDbFactory {
+import io.camunda.zeebe.db.ZeebeDb
+import io.camunda.zeebe.db.ZeebeDbFactory
+import io.camunda.zeebe.engine.state.ZbColumnFamilies
+import java.io.File
+
+class EzeDbFactory<ColumnFamilyType : Enum<ColumnFamilyType>> : ZeebeDbFactory<ColumnFamilyType> {
+
+    companion object {
+        fun <ColumnFamilyType : Enum<ColumnFamilyType>> newFactory() : ZeebeDbFactory<ColumnFamilyType>{
+            return EzeDbFactory()
+        }
+    }
+
+    override fun createDb(_ignore: File?): ZeebeDb<ColumnFamilyType> {
+        return EzeDb()
+    }
 }
