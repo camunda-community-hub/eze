@@ -121,17 +121,35 @@ class EngineClientTest {
         // given
         val zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
 
+        zeebeClient.newDeployCommand()
+            .addProcessModel(Bpmn.createExecutableProcess("process")
+                .startEvent()
+                .intermediateCatchEvent()
+                .message { it.name("a").zeebeCorrelationKeyExpression("key") }
+                .endEvent()
+                .done(), "process.bpmn")
+            .send()
+            .join()
+
+        val processInstanceResult = zeebeClient.newCreateInstanceCommand()
+            .bpmnProcessId("process")
+            .latestVersion()
+            .variables(mapOf("key" to "key-1"))
+            .withResult()
+            .send()
+
         // when
-        val message = zeebeClient
+        zeebeClient
             .newPublishMessageCommand()
-            .messageName("msg")
-            .correlationKey("var")
-            .variables(mapOf("test" to 1))
+            .messageName("a")
+            .correlationKey("key-1")
+            .variables(mapOf("message" to "correlated"))
             .send()
             .join()
 
         // then
-        assertThat(message.messageKey).isPositive
+        assertThat(processInstanceResult.join().variablesAsMap)
+            .containsEntry("message", "correlated")
     }
 
     @Test

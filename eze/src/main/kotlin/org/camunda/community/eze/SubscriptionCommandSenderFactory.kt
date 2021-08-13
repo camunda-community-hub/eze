@@ -31,7 +31,8 @@ class SubscriptionCommandSenderFactory(
 
         return SubscriptionCommandSender(partitionId,
             PartitionCommandSenderImpl { receiverPartitionId, message ->
-                subscriptionHandlers[receiverPartitionId].let { it.apply { message } }
+                subscriptionHandlers[receiverPartitionId]?.apply(message)
+                    ?: throw RuntimeException("no message subscription handler found for partition '$receiverPartitionId'")
             })
     }
 

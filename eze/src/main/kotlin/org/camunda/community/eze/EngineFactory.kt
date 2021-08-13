@@ -16,6 +16,7 @@ import io.camunda.zeebe.engine.state.appliers.EventAppliers
 import io.camunda.zeebe.exporter.api.Exporter
 import io.camunda.zeebe.logstreams.log.LogStream
 import io.camunda.zeebe.logstreams.log.LogStreamReader
+import io.camunda.zeebe.logstreams.log.LogStreamRecordWriter
 import io.camunda.zeebe.logstreams.storage.LogStorage
 import io.camunda.zeebe.protocol.impl.record.CopiedRecord
 import io.camunda.zeebe.protocol.impl.record.RecordMetadata
@@ -30,11 +31,21 @@ import org.camunda.community.eze.db.EzeZeebeDbFactory
 import java.nio.file.Files
 import java.util.concurrent.CompletableFuture
 
+typealias PartitionId = Int
+
 object EngineFactory {
 
-    private val subscriptionCommandSenderFactory = SubscriptionCommandSenderFactory { partitionId ->
-        TODO("return record writer")
-    }
+    private val partitionId: PartitionId = 1
+    private val partitionCount = 1
+
+    private val streamWritersByPartition = mutableMapOf<PartitionId, LogStreamRecordWriter>()
+
+    private val subscriptionCommandSenderFactory = SubscriptionCommandSenderFactory(
+        writerLookUp = { partitionId ->
+            streamWritersByPartition[partitionId]
+                ?: throw RuntimeException("no stream writer found for partition '$partitionId'")
+        }
+    )
 
     fun create(exporters: Iterable<Exporter> = emptyList()): ZeebeEngine {
 
@@ -44,12 +55,14 @@ object EngineFactory {
 
         val logStorage = createLogStorage()
         val logStream = createLogStream(
-            partitionId = 1,
+            partitionId = partitionId,
             logStorage = logStorage,
             scheduler = scheduler
         )
 
         val streamWriter = logStream.newLogStreamRecordWriter().join()
+        streamWritersByPartition[partitionId] = streamWriter
+
         val simpleGateway = SimpleGateway(streamWriter)
         val server = ServerBuilder.forPort(ZeebeEngineImpl.PORT).addService(simpleGateway).build()
 
@@ -61,7 +74,7 @@ object EngineFactory {
         )
 
         val streamProcessor = createStreamProcessor(
-            partitionCount = 1,
+            partitionCount = partitionCount,
             logStream = logStream,
             database = db,
             scheduler = scheduler,
@@ -113,7 +126,7 @@ object EngineFactory {
                 EngineProcessors.createEngineProcessors(
                     context,
                     partitionCount,
-                    subscriptionCommandSenderFactory.ofPartition(partitionId = 1),
+                    subscriptionCommandSenderFactory.ofPartition(partitionId = partitionId),
                     SinglePartitionDeploymentDistributor(),
                     SinglePartitionDeploymentResponder(),
                     { jobType ->
@@ -146,8 +159,11 @@ object EngineFactory {
             builder
                 .buildAsync()
                 .onComplete { logStream, failure ->
-                    // TODO boom
-                    theFuture.complete(logStream)
+                    if (failure != null) {
+                        theFuture.completeExceptionally(failure)
+                    } else {
+                        theFuture.complete(logStream)
+                    }
                 }
         })
 
@@ -197,7 +213,7 @@ object EngineFactory {
                 value,
                 metadata,
                 it.key,
-                1,
+                partitionId,
                 it.position,
                 it.sourceEventPosition,
                 it.timestamp
@@ -209,3 +225,4 @@ object EngineFactory {
     }
 
 }
+

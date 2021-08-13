@@ -31,7 +31,6 @@ import io.camunda.zeebe.util.buffer.BufferUtil.wrapString
 import io.camunda.zeebe.util.buffer.BufferWriter
 import io.grpc.protobuf.StatusProto
 import io.grpc.stub.StreamObserver
-import org.agrona.concurrent.UnsafeBuffer
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
@@ -89,7 +88,10 @@ class SimpleGateway(
             messageRecord.messageId = messageRequest.messageId
             messageRecord.name = messageRequest.name
             messageRecord.timeToLive = messageRequest.timeToLive
-            messageRecord.setVariables(UnsafeBuffer(MsgPackConverter.convertToMsgPack(messageRecord.variables)))
+            messageRequest.variables.takeIf { it.isNotEmpty() }?.let {
+                val variables = BufferUtil.wrapArray(MsgPackConverter.convertToMsgPack(it))
+                messageRecord.setVariables(variables)
+            }
 
             writeCommandWithoutKey(recordMetadata, messageRecord)
         }
@@ -409,7 +411,7 @@ class SimpleGateway(
         try {
             executor.shutdownNow()
             executor.awaitTermination(60, TimeUnit.SECONDS)
-        } catch (ie : InterruptedException) {
+        } catch (ie: InterruptedException) {
             // TODO handle
         }
     }
