@@ -81,6 +81,14 @@
         <scope>import</scope>
       </dependency>
 
+
+      <!-- only to avoid convergence -->
+      <dependency>
+        <groupId>junit</groupId>
+        <artifactId>junit</artifactId>
+        <version>4.13.2</version>
+      </dependency>
+
       <!-- Kotlin deps -->
 
       <dependency>
@@ -190,7 +198,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-enforcer-plugin</artifactId>
-        <version>1.4.1</version>
+        <version>3.0.0</version>
         <configuration>
           <rules>
             <dependencyConvergence />

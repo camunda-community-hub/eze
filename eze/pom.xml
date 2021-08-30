@@ -32,6 +32,10 @@
           <artifactId>spring-boot-actuator</artifactId>
         </exclusion>
         <exclusion>
+          <groupId>junit</groupId>
+          <artifactId>junit</artifactId>
+        </exclusion>
+        <exclusion>
           <groupId>org.springframework.boot</groupId>
           <artifactId>spring-boot-actuator-autoconfigure</artifactId>
         </exclusion>
@@ -127,6 +131,11 @@
     <dependency>
       <groupId>org.junit.vintage</groupId>
       <artifactId>junit-vintage-engine</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
     </dependency>
 
     <!-- Kotlin deps -->
