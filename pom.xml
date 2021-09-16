@@ -59,7 +59,7 @@
     <snakeyaml.version>1.29</snakeyaml.version>
     <guava.version>30.1.1-jre</guava.version>
     <protobuf-java.version>3.18.0</protobuf-java.version>
-    <jackson.version>2.12.4</jackson.version>
+    <jackson.version>2.12.5</jackson.version>
     <scala-library.version>2.13.6</scala-library.version>
   </properties>
 
