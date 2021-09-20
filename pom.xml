@@ -43,7 +43,7 @@
     <maven.version>3.0</maven.version>
 
     <kotlin.version>1.5.30</kotlin.version>
-    <zeebe.version>1.2.0-alpha1</zeebe.version>
+    <zeebe.version>1.2.0-alpha2</zeebe.version>
 
     <version.junit>5.8.0</version.junit>
 
