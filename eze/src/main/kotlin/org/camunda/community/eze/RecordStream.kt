@@ -11,9 +11,7 @@ import io.camunda.zeebe.protocol.record.Record
 import io.camunda.zeebe.protocol.record.RecordType
 import io.camunda.zeebe.protocol.record.RecordValue
 import io.camunda.zeebe.protocol.record.intent.Intent
-import io.camunda.zeebe.protocol.record.value.BpmnElementType
-import io.camunda.zeebe.protocol.record.value.JobRecordValue
-import io.camunda.zeebe.protocol.record.value.ProcessInstanceRecordValue
+import io.camunda.zeebe.protocol.record.value.*
 import io.camunda.zeebe.test.util.record.CompactRecordLogger
 
 object RecordStream {
@@ -66,4 +64,34 @@ object RecordStream {
         return filter { it.value.type == jobType }
     }
 
+    /* incidents */
+
+    fun Iterable<Record<IncidentRecordValue>>.withErrorType(errorType: ErrorType): Iterable<Record<IncidentRecordValue>> {
+        return filter { it.value.errorType == errorType }
+    }
+
+    fun Iterable<Record<IncidentRecordValue>>.withBpmnProcessId(bpmnProcessId: String): Iterable<Record<IncidentRecordValue>> {
+        return filter { it.value.bpmnProcessId == bpmnProcessId }
+    }
+
+    fun Iterable<Record<IncidentRecordValue>>.withProcessDefinitionKey(processDefinitionKey: Long): Iterable<Record<IncidentRecordValue>> {
+        return filter { it.value.processDefinitionKey == processDefinitionKey }
+    }
+
+    @JvmName("withProcessInstanceKeyIncidentRecordValue")
+    fun Iterable<Record<IncidentRecordValue>>.withProcessInstanceKey(processInstanceKey: Long): Iterable<Record<IncidentRecordValue>> {
+        return filter { it.value.processInstanceKey == processInstanceKey }
+    }
+
+    fun Iterable<Record<IncidentRecordValue>>.withElementId(elementId: String): Iterable<Record<IncidentRecordValue>> {
+        return filter { it.value.elementId == elementId }
+    }
+
+    fun Iterable<Record<IncidentRecordValue>>.withElementInstanceKey(elementInstanceKey: Long): Iterable<Record<IncidentRecordValue>> {
+        return filter { it.value.elementInstanceKey == elementInstanceKey }
+    }
+
+    fun Iterable<Record<IncidentRecordValue>>.withJobKey(jobKey: Long): Iterable<Record<IncidentRecordValue>> {
+        return filter { it.value.jobKey == jobKey }
+    }
 }
