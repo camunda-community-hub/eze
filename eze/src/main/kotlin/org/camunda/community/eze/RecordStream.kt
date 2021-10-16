@@ -66,32 +66,31 @@ object RecordStream {
 
     /* incidents */
 
-    fun Iterable<Record<IncidentRecordValue>>.withErrorType(errorType: ErrorType): Iterable<Record<IncidentRecordValue>> {
+    fun Iterable<Record<IncidentRecordValue>>.incidentWithErrorType(errorType: ErrorType): Iterable<Record<IncidentRecordValue>> {
         return filter { it.value.errorType == errorType }
     }
 
-    fun Iterable<Record<IncidentRecordValue>>.withBpmnProcessId(bpmnProcessId: String): Iterable<Record<IncidentRecordValue>> {
+    fun Iterable<Record<IncidentRecordValue>>.incidentWithBpmnProcessId(bpmnProcessId: String): Iterable<Record<IncidentRecordValue>> {
         return filter { it.value.bpmnProcessId == bpmnProcessId }
     }
 
-    fun Iterable<Record<IncidentRecordValue>>.withProcessDefinitionKey(processDefinitionKey: Long): Iterable<Record<IncidentRecordValue>> {
+    fun Iterable<Record<IncidentRecordValue>>.incidentWithProcessDefinitionKey(processDefinitionKey: Long): Iterable<Record<IncidentRecordValue>> {
         return filter { it.value.processDefinitionKey == processDefinitionKey }
     }
 
-    @JvmName("withProcessInstanceKeyIncidentRecordValue")
-    fun Iterable<Record<IncidentRecordValue>>.withProcessInstanceKey(processInstanceKey: Long): Iterable<Record<IncidentRecordValue>> {
+    fun Iterable<Record<IncidentRecordValue>>.incidentWithProcessInstanceKey(processInstanceKey: Long): Iterable<Record<IncidentRecordValue>> {
         return filter { it.value.processInstanceKey == processInstanceKey }
     }
 
-    fun Iterable<Record<IncidentRecordValue>>.withElementId(elementId: String): Iterable<Record<IncidentRecordValue>> {
+    fun Iterable<Record<IncidentRecordValue>>.incidentWithElementId(elementId: String): Iterable<Record<IncidentRecordValue>> {
         return filter { it.value.elementId == elementId }
     }
 
-    fun Iterable<Record<IncidentRecordValue>>.withElementInstanceKey(elementInstanceKey: Long): Iterable<Record<IncidentRecordValue>> {
+    fun Iterable<Record<IncidentRecordValue>>.incidentWithElementInstanceKey(elementInstanceKey: Long): Iterable<Record<IncidentRecordValue>> {
         return filter { it.value.elementInstanceKey == elementInstanceKey }
     }
 
-    fun Iterable<Record<IncidentRecordValue>>.withJobKey(jobKey: Long): Iterable<Record<IncidentRecordValue>> {
+    fun Iterable<Record<IncidentRecordValue>>.incidentWithJobKey(jobKey: Long): Iterable<Record<IncidentRecordValue>> {
         return filter { it.value.jobKey == jobKey }
     }
 }
