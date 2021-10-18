@@ -19,7 +19,7 @@ interface RecordStreamSource {
 
     fun <T : RecordValue> Iterable<Record<*>>.ofValueType(valueType: ValueType): Iterable<Record<T>> {
         return filter { it.valueType == valueType }
-            .filterIsInstance<Record<T>>()
+                .filterIsInstance<Record<T>>()
     }
 
     fun processInstanceRecords(): Iterable<Record<ProcessInstanceRecordValue>> {
@@ -50,8 +50,8 @@ interface RecordStreamSource {
         return records().ofValueType(ValueType.VARIABLE_DOCUMENT)
     }
 
-    fun incidentRecords(): Iterable<Record<IncidentRecordValue>> {
-        return records().ofValueType(ValueType.INCIDENT)
+    fun incidentRecords(): IncidentRecordStream {
+        return IncidentRecordStream(records().ofValueType(ValueType.INCIDENT))
     }
 
     fun timerRecords(): Iterable<Record<TimerRecordValue>> {
