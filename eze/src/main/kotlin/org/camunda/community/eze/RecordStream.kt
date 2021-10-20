@@ -57,13 +57,42 @@ object RecordStream {
         return filter { it.value.bpmnElementType == elementType }
     }
 
+    @JvmName("withProcessInstanceKeyProcessInstanceRecordValue")
     fun Iterable<Record<ProcessInstanceRecordValue>>.withProcessInstanceKey(processInstanceKey: Long): Iterable<Record<ProcessInstanceRecordValue>> {
         return filter { it.value.processInstanceKey == processInstanceKey }
     }
 
-
     fun Iterable<Record<JobRecordValue>>.withJobType(jobType: String): Iterable<Record<JobRecordValue>> {
         return filter { it.value.type == jobType }
+    }
+
+    fun Iterable<Record<JobRecordValue>>.withBpmnProcessId(bpmnProcessId: String): Iterable<Record<JobRecordValue>> {
+        return filter { it.value.bpmnProcessId == bpmnProcessId }
+    }
+
+    fun Iterable<Record<JobRecordValue>>.withProcessDefinitionKey(processDefinitionKey: Long): Iterable<Record<JobRecordValue>> {
+        return filter { it.value.processDefinitionKey == processDefinitionKey }
+    }
+
+    fun Iterable<Record<JobRecordValue>>.withProcessDefinitionVersion(processDefinitionVersion: Int): Iterable<Record<JobRecordValue>> {
+        return filter { it.value.processDefinitionVersion == processDefinitionVersion }
+    }
+
+    fun Iterable<Record<JobRecordValue>>.withElementId(elementId: String): Iterable<Record<JobRecordValue>> {
+        return filter { it.value.elementId == elementId }
+    }
+
+    fun Iterable<Record<JobRecordValue>>.withElementInstanceKey(elementInstanceKey: Long): Iterable<Record<JobRecordValue>> {
+        return filter { it.value.elementInstanceKey == elementInstanceKey }
+    }
+
+    fun Iterable<Record<JobRecordValue>>.withJobWorker(jobWorker: String): Iterable<Record<JobRecordValue>> {
+        return filter { it.value.worker == jobWorker }
+    }
+
+    @JvmName("withProcessInstanceKeyJobRecordValue")
+    fun Iterable<Record<JobRecordValue>>.withProcessInstanceKey(processInstanceKey: Long): Iterable<Record<JobRecordValue>> {
+        return filter { it.value.processInstanceKey == processInstanceKey }
     }
 
 }
