@@ -13,6 +13,30 @@ A lightweight version of [Zeebe](https://github.com/camunda-cloud/zeebe) from [C
 * Read records from the log stream
 * Time-Travel API  
 
+## Install
+
+Add one of the following dependency to your project (i.e. Maven pom.xml):
+
+For the embedded engine:
+
+```
+<dependency>
+  <groupId>org.camunda.community</groupId>
+  <artifactId>eze</artifactId>
+</dependency>
+```
+
+For the JUnit5 extension: 
+
+```
+<dependency>
+  <groupId>org.camunda.community</groupId>
+  <artifactId>eze-junit-extension</artifactId>
+</dependency>
+```
+
+Note that the library is written in Kotlin. In general, it works for all JVM languages, like Java. However, it may work best with Kotlin. 
+
 ## Usage
 
 ### Bootstrap the Engine
@@ -142,26 +166,3 @@ class ProcessTest {
   }
 ```
 
-## Install
-
-Add one of the following dependency to your project (i.e. Maven pom.xml):
-
-For the embedded engine:
-
-```
-<dependency>
-  <groupId>org.camunda.community</groupId>
-  <artifactId>eze</artifactId>
-</dependency>
-```
-
-For the JUnit5 extension: 
-
-```
-<dependency>
-  <groupId>org.camunda.community</groupId>
-  <artifactId>eze-junit-extension</artifactId>
-</dependency>
-```
-
-Note that the library is written in Kotlin. In general, it works for all JVM languages, like Java. However, it may work best with Kotlin. 
