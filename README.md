@@ -23,6 +23,7 @@ For the embedded engine:
 <dependency>
   <groupId>org.camunda.community</groupId>
   <artifactId>eze</artifactId>
+  <version>0.3.0</version>
 </dependency>
 ```
 
@@ -32,6 +33,7 @@ For the JUnit5 extension:
 <dependency>
   <groupId>org.camunda.community</groupId>
   <artifactId>eze-junit-extension</artifactId>
+  <version>0.3.0</version>
 </dependency>
 ```
 
