@@ -26,8 +26,8 @@ interface RecordStreamSource {
         return records().ofValueType(ValueType.PROCESS_INSTANCE)
     }
 
-    fun jobRecords(): Iterable<Record<JobRecordValue>> {
-        return records().ofValueType(ValueType.JOB)
+    fun jobRecords(): JobRecordStream {
+        return JobRecordStream(records().ofValueType(ValueType.JOB))
     }
 
     fun jobBatchRecords(): Iterable<Record<JobBatchRecordValue>> {
