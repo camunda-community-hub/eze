@@ -60,9 +60,4 @@ object RecordStream {
     fun Iterable<Record<ProcessInstanceRecordValue>>.withProcessInstanceKey(processInstanceKey: Long): Iterable<Record<ProcessInstanceRecordValue>> {
         return filter { it.value.processInstanceKey == processInstanceKey }
     }
-
-    fun Iterable<Record<JobRecordValue>>.withJobType(jobType: String): Iterable<Record<JobRecordValue>> {
-        return filter { it.value.type == jobType }
-    }
-
 }
