@@ -54,8 +54,8 @@ interface RecordStreamSource {
         return IncidentRecordStream(records().ofValueType(ValueType.INCIDENT))
     }
 
-    fun timerRecords(): Iterable<Record<TimerRecordValue>> {
-        return records().ofValueType(ValueType.TIMER)
+    fun timerRecords(): TimerRecordStream {
+        return TimerRecordStream(records().ofValueType(ValueType.TIMER))
     }
 
     fun messageRecords(): Iterable<Record<MessageRecordValue>> {
