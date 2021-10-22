@@ -22,8 +22,8 @@ interface RecordStreamSource {
                 .filterIsInstance<Record<T>>()
     }
 
-    fun processInstanceRecords(): Iterable<Record<ProcessInstanceRecordValue>> {
-        return records().ofValueType(ValueType.PROCESS_INSTANCE)
+    fun processInstanceRecords(): ProcessInstanceRecordStream {
+        return ProcessInstanceRecordStream(records().ofValueType(ValueType.PROCESS_INSTANCE))
     }
 
     fun jobRecords(): JobRecordStream {
