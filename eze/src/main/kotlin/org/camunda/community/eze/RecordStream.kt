@@ -14,7 +14,6 @@ import io.camunda.zeebe.protocol.record.intent.Intent
 import io.camunda.zeebe.protocol.record.value.BpmnElementType
 import io.camunda.zeebe.protocol.record.value.JobRecordValue
 import io.camunda.zeebe.protocol.record.value.ProcessInstanceRecordValue
-import io.camunda.zeebe.protocol.record.value.TimerRecordValue
 import io.camunda.zeebe.test.util.record.CompactRecordLogger
 
 object RecordStream {
@@ -62,24 +61,8 @@ object RecordStream {
         return filter { it.value.processInstanceKey == processInstanceKey }
     }
 
-
     fun Iterable<Record<JobRecordValue>>.withJobType(jobType: String): Iterable<Record<JobRecordValue>> {
         return filter { it.value.type == jobType }
     }
 
-	fun Iterable<Record<TimerRecordValue>>.withProcessDefinitionKey(processDefinitionKey: Long): Iterable<Record<TimerRecordValue>> {
-        return filter { it.value.processDefinitionKey == processDefinitionKey }
-    }
-	
-	fun Iterable<Record<TimerRecordValue>>.withProcessInstanceKey(processInstanceKey: Long): Iterable<Record<TimerRecordValue>> {
-        return filter { it.value.processInstanceKey == processInstanceKey }
-    }
-
-	fun Iterable<Record<TimerRecordValue>>.withTargetElementId(targetElementId: String): Iterable<Record<TimerRecordValue>> {
-        return filter { it.value.targetElementId == targetElementId }
-    }
-
-	fun Iterable<Record<TimerRecordValue>>.withElementInstanceKey(elementInstanceKey: Long): Iterable<Record<TimerRecordValue>> {
-        return filter { it.value.elementInstanceKey == elementInstanceKey }
-    }
 }
