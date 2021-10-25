@@ -42,8 +42,8 @@ interface RecordStreamSource {
         return records().ofValueType(ValueType.PROCESS)
     }
 
-    fun variableRecords(): Iterable<Record<VariableRecordValue>> {
-        return records().ofValueType(ValueType.VARIABLE)
+    fun variableRecords(): VariableRecordStream {
+        return VariableRecordStream(records().ofValueType(ValueType.VARIABLE))
     }
 
     fun variableDocumentRecords(): Iterable<Record<VariableDocumentRecordValue>> {
