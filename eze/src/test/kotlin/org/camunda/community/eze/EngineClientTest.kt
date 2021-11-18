@@ -36,6 +36,7 @@ import java.time.Duration
 class EngineClientTest {
 
     private lateinit var zeebeEngine: ZeebeEngine
+    private lateinit var zeebeClient: ZeebeClient
 
     @BeforeEach
     fun `setup grpc server`() {
@@ -48,12 +49,13 @@ class EngineClientTest {
     @AfterEach
     fun `tear down`() {
         zeebeEngine.stop()
+        zeebeClient.close()
     }
 
     @Test
     fun `should request topology`() {
         // given
-        val zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
+        zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
 
         // when
         val topology = zeebeClient
@@ -84,7 +86,7 @@ class EngineClientTest {
     @Test
     fun `should use built in client`() {
         // given
-        val zeebeClient = zeebeEngine.createClient()
+        zeebeClient = zeebeEngine.createClient()
 
         // when
         val topology = zeebeClient
@@ -99,7 +101,7 @@ class EngineClientTest {
     @Test
     fun `should use gateway address to build client`() {
         // given
-        val zeebeClient = ZeebeClient
+        zeebeClient = ZeebeClient
             .newClientBuilder()
             .usePlaintext()
             .gatewayAddress(zeebeEngine.getGatewayAddress())
@@ -119,7 +121,7 @@ class EngineClientTest {
     @Test
     fun `should publish message`() {
         // given
-        val zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
+        zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
 
         zeebeClient.newDeployCommand()
             .addProcessModel(Bpmn.createExecutableProcess("process")
@@ -155,7 +157,7 @@ class EngineClientTest {
     @Test
     fun `should deploy process`() {
         // given
-        val zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
+        zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
 
         // when
         val deployment = zeebeClient
@@ -185,7 +187,7 @@ class EngineClientTest {
     @Test
     fun `should create instance without variables`() {
         // given
-        val zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
+        zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
         val deployment = zeebeClient
             .newDeployCommand()
             .addProcessModel(
@@ -214,7 +216,7 @@ class EngineClientTest {
     @Test
     fun `should reject command`() {
         // given
-        val zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
+        zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
 
         // when
         val future = zeebeClient.newCreateInstanceCommand()
@@ -231,7 +233,7 @@ class EngineClientTest {
     @Test
     fun `should create process instance`() {
         // given
-        val zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
+        zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
         val deployment = zeebeClient
             .newDeployCommand()
             .addProcessModel(
@@ -261,7 +263,7 @@ class EngineClientTest {
     @Test
     fun `should cancel process instance`() {
         // given
-        val zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
+        zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
         zeebeClient
             .newDeployCommand()
             .addProcessModel(
@@ -301,7 +303,7 @@ class EngineClientTest {
     @Test
     fun `should update variables on process instance`() {
         // given
-        val zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
+        zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
         zeebeClient
             .newDeployCommand()
             .addProcessModel(
@@ -337,7 +339,7 @@ class EngineClientTest {
     @Test
     fun `should create process instance with result`() {
         // given
-        val zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
+        zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
 
         val deployment = zeebeClient
             .newDeployCommand()
@@ -371,7 +373,7 @@ class EngineClientTest {
     @Test
     fun `should activate job`() {
         // given
-        val zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
+        zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
         val deployment = zeebeClient
             .newDeployCommand()
             .addProcessModel(
@@ -419,7 +421,7 @@ class EngineClientTest {
     @Test
     fun `should complete job`() {
         // given
-        val zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
+        zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
 
         zeebeClient
             .newDeployCommand()
@@ -458,7 +460,7 @@ class EngineClientTest {
     @Test
     fun `should fail job`() {
         // given
-        val zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
+        zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
         zeebeClient
             .newDeployCommand()
             .addProcessModel(
@@ -515,7 +517,7 @@ class EngineClientTest {
     @Test
     fun `should throw error on job`() {
         // given
-        val zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
+        zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
         zeebeClient
             .newDeployCommand()
             .addProcessModel(
@@ -575,7 +577,7 @@ class EngineClientTest {
     @Test
     fun `should update retries on job`() {
         // given
-        val zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
+        zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
         zeebeClient
             .newDeployCommand()
             .addProcessModel(
@@ -631,7 +633,7 @@ class EngineClientTest {
     @Test
     fun `should read process instance records`() {
         // given
-        val zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
+        zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
 
         zeebeClient
             .newDeployCommand()
@@ -682,7 +684,7 @@ class EngineClientTest {
     @Test
     fun `should print records`() {
         // given
-        val zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
+        zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
 
         zeebeClient
             .newDeployCommand()
@@ -720,7 +722,7 @@ class EngineClientTest {
     @Test
     fun `should increase the time`() {
         // given
-        val zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
+        zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
 
         zeebeClient
             .newDeployCommand()
