@@ -39,7 +39,7 @@ class EzeExtension : BeforeEachCallback, TestWatcher {
     private fun injectFields(context: ExtensionContext, testInstance: Any, testClass: Class<*>) {
         mapOf(
             ZeebeEngine::class to EzeExtensionState::zeebe,
-            ZeebeClient::class to { it.zeebe.createClient() },
+            ZeebeClient::class to { it.zeebeClient },
             ZeebeEngineClock::class to { it.zeebe.clock() },
             RecordStreamSource::class to EzeExtensionState::zeebe
         ).forEach { (fieldType, fieldValue) ->
@@ -85,13 +85,15 @@ class EzeExtension : BeforeEachCallback, TestWatcher {
     }
 
     class EzeExtensionState(val zeebe: ZeebeEngine) : CloseableResource {
+        internal var zeebeClient: ZeebeClient;
         init {
             zeebe.start()
+            zeebeClient = zeebe.createClient()
         }
 
         override fun close() {
+            zeebeClient.close()
             zeebe.stop()
         }
     }
-
 }
