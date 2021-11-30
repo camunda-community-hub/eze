@@ -53,7 +53,9 @@ class EzeDbTransaction(val database : TreeMap<Bytes, Bytes>) : ZeebeDbTransactio
     }
 
     fun put(keyBufferArray: ByteArray, keyLength: Int, valueBufferArray: ByteArray, valueLength: Int) {
-        transactionCache[keyBufferArray.toBytes(keyLength)] = valueBufferArray.toBytes(valueLength)
+        val keyBytes = keyBufferArray.toBytes(keyLength)
+        deletedKeys.remove(keyBytes)
+        transactionCache[keyBytes] = valueBufferArray.toBytes(valueLength)
     }
 
     fun get(keyBufferArray: ByteArray, keyLength: Int): ByteArray? {

@@ -479,6 +479,27 @@ public final class DbTransactionTest {
     assertThat(threeColumnFamily.exists(threeKey)).isFalse();
   }
 
+  @Test
+  public void shouldWriteKeyAfterDeletion() {
+    // given
+    oneKey.wrapLong(1);
+    oneValue.wrapLong(-1);
+    oneColumnFamily.put(oneKey, oneValue);
+
+    // when
+    assertThat(oneColumnFamily.get(oneKey).getValue()).isEqualTo(-1);
+    transactionContext.runInTransaction(
+        () -> {
+          oneColumnFamily.delete(oneKey);
+          oneValue.wrapLong(-2);
+          oneColumnFamily.put(oneKey, oneValue);
+        });
+
+    // then
+    assertThat(oneColumnFamily.exists(oneKey)).isTrue();
+    assertThat(oneColumnFamily.get(oneKey).getValue()).isEqualTo(-2);
+  }
+
   private enum ColumnFamilies {
     DEFAULT, // rocksDB needs a default column family
     ONE,
