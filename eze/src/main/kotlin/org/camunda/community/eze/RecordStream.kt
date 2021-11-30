@@ -19,10 +19,15 @@ import io.camunda.zeebe.test.util.record.CompactRecordLogger
 object RecordStream {
 
     fun Iterable<Record<*>>.print(compact: Boolean = true) {
+        val count = count()
+        if (count < 1) {
+            println("No records to print.")
+        }
+
         if (compact) {
             CompactRecordLogger(toList()).log()
         } else {
-            println("===== records (count: ${count()}) =====")
+            println("===== records (count: $count) =====")
             toList().forEach { println(it.toJson()) }
             println("---------------------------")
         }
