@@ -81,11 +81,12 @@ object EngineFactory {
             grpcResponseWriter
         )
 
-        val reader = logStream.newLogStreamReader().join()
+        val exporterReader = logStream.newLogStreamReader().join()
+        val recordStreamReader = logStream.newLogStreamReader().join()
 
         val exporterRunner = ExporterRunner(
             exporters = exporters,
-            reader = { position -> createRecordStream(reader, position) }
+            reader = { position -> createRecordStream(exporterReader, position) }
         )
         logStream.registerRecordAvailableListener(exporterRunner::onRecordsAvailable)
 
@@ -105,7 +106,7 @@ object EngineFactory {
                 logStream.close()
                 scheduler.stop()
             },
-            recordStream = { createRecordStream(reader) },
+            recordStream = { createRecordStream(recordStreamReader) },
             clock = clock
         )
     }
