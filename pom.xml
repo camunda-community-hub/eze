@@ -44,7 +44,7 @@
 
     <kotlin.version>1.6.0</kotlin.version>
     <zeebe.version>1.2.5</zeebe.version>
-    <netty.version>4.1.70.Final</netty.version>
+    <netty.version>4.1.72.Final</netty.version>
 
     <version.junit>5.8.2</version.junit>
     <version.jackson>2.13.0</version.jackson>
