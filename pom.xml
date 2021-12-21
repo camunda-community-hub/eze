@@ -58,7 +58,7 @@
     <awaitility.version>4.1.1</awaitility.version>
     <log4j.version>2.17.0</log4j.version>
     <slf4j-api.version>1.7.32</slf4j-api.version>
-    <snakeyaml.version>1.29</snakeyaml.version>
+    <snakeyaml.version>1.30</snakeyaml.version>
     <guava.version>31.0.1-jre</guava.version>
     <protobuf-java.version>3.19.1</protobuf-java.version>
     <jackson.version>2.13.0</jackson.version>
