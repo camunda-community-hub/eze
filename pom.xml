@@ -47,7 +47,7 @@
     <netty.version>4.1.72.Final</netty.version>
 
     <version.junit>5.8.2</version.junit>
-    <version.jackson>2.13.0</version.jackson>
+    <version.jackson>2.13.1</version.jackson>
 
     <plugin.version.surefire>3.0.0-M5</plugin.version.surefire>
     <plugin.version.javadoc>3.3.1</plugin.version.javadoc>
