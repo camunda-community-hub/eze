@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <artifactId>agent</artifactId>
+  <packaging>jar</packaging>
+
+  <name>EZE - Embedded Zeebe Engine Agent</name>
+
+  <parent>
+    <groupId>org.camunda.community</groupId>
+    <artifactId>eze-root</artifactId>
+    <relativePath>../pom.xml</relativePath>
+    <version>0.7.1-SNAPSHOT</version>
+  </parent>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.camunda.community</groupId>
+      <artifactId>eze</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <!-- required as otherwise the engine cannot be instantiated due to a missing class -->
+    <dependency>
+      <groupId>io.camunda</groupId>
+      <artifactId>zeebe-exporter-api</artifactId>
+    </dependency>
+
+    <!-- cli -->
+    <dependency>
+      <groupId>info.picocli</groupId>
+      <artifactId>picocli</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.agrona</groupId>
+      <artifactId>agrona</artifactId>
+    </dependency>
+
+    <!-- logging; adopt the implementation included in eze -->
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+    </dependency>
+
+    <!-- Test dependencies -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-api</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>io.camunda</groupId>
+      <artifactId>zeebe-client-java</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <properties>
+    <agent.finalName>eze</agent.finalName>
+    <agent.mainClass>org.camunda.community.eze.agent.Agent</agent.mainClass>
+  </properties>
+
+  <build>
+    <finalName>${agent.finalName}</finalName>
+    <plugins>
+      <!-- process picocli annotations -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <annotationProcessorPaths>
+            <path>
+              <groupId>info.picocli</groupId>
+              <artifactId>picocli-codegen</artifactId>
+              <version>${picocli.version}</version>
+            </path>
+          </annotationProcessorPaths>
+          <compilerArgs>
+            <arg>-Aproject=${project.groupId}/${project.artifactId}</arg>
+          </compilerArgs>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+  <profiles>
+    <!-- generates a Docker image as part of the build process; this configuration expects
+         authentication to have been set up beforehand -->
+    <profile>
+      <id>docker</id>
+
+      <properties>
+        <dockerImageTag>${project.version}</dockerImageTag>
+
+        <!-- set to build to build AND push; leave to dockerBuild to only build locally -->
+        <dockerGoal>dockerBuild</dockerGoal>
+      </properties>
+
+      <build>
+        <plugins>
+          <!-- Build a docker image -->
+          <plugin>
+            <groupId>com.google.cloud.tools</groupId>
+            <artifactId>jib-maven-plugin</artifactId>
+
+            <configuration>
+              <from>
+                <!-- smallest Java 17 base image; Temurin does not produce Java 17 JRE only builds -->
+                <image>
+                  azul/zulu-openjdk-alpine:17-jre-headless@sha256:ca58039e2aa75651ab6e6558816202e85187675d8ee64f6dc7fc8d44cb6ffef3
+                </image>
+              </from>
+              <to>
+                <image>ghcr.io/camunda-community-hub/${project.build.finalName}</image>
+                <tags>${dockerImageTag}</tags>
+              </to>
+              <container>
+                <mainClass>${agent.mainClass}</mainClass>
+                <ports>
+                  <port>26500</port>
+                </ports>
+              </container>
+            </configuration>
+
+            <executions>
+              <execution>
+                <phase>package</phase>
+                <goals>
+                  <goal>${dockerGoal}</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+
+</project>
