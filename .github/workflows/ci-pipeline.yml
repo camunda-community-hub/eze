@@ -68,3 +68,10 @@ jobs:
           asset_path: ${{ steps.release.outputs.artifacts_archive_path }}
           asset_name: ${{ steps.release.outputs.artifacts_archive_path }}
           asset_content_type: application/zip
+      - if: github.event.release
+        name: Build & Push Docker images
+        id: docker
+        timeout-minutes: 10
+        run: |
+          echo ${{ secrets.GHCR_TOKEN }} | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
+          mvn -B -Pdocker -DskipTests -DdockerGoal=build -DdockerImageTag=${{ github.event.release.tag_name }} package
