@@ -170,7 +170,7 @@ class ProcessTest {
 
 ### Docker
 
-EZE can since the 0.8.1 release be run also run via docker. The benefits over running a normal Zeebe docker image are the reductions of dependencies and components, which should make start up and execution much more performant.
+EZE can be run via docker. The benefits over running a normal Zeebe docker image are, the reductions of dependencies and components, which should make start up and execution much more performant.
 
 ```sh
 docker run -p 26500:26500 -it ghcr.io/camunda-community-hub/eze:0.8.1
@@ -190,5 +190,4 @@ Brokers:
     Partition 1 : Leader, Healthy
 ```
 
-The usage of the Docker container is currently quite limited, since the client/user has no access to the log. The log is currently not exposed. Furthermore it is not yet possible to configure an exporter, but hopefully soon.
-
+The usage of the Docker container is currently quite limited, since the client/user has no access to the log. The log is currently not exposed. Furthermore, it is not yet possible to configure an exporter, but hopefully soon.
