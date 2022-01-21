@@ -21,12 +21,6 @@
       <version>${project.version}</version>
     </dependency>
 
-    <!-- required as otherwise the engine cannot be instantiated due to a missing class -->
-    <dependency>
-      <groupId>io.camunda</groupId>
-      <artifactId>zeebe-exporter-api</artifactId>
-    </dependency>
-
     <!-- cli -->
     <dependency>
       <groupId>info.picocli</groupId>

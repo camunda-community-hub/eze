@@ -67,6 +67,8 @@
     <scala-library.version>2.13.8</scala-library.version>
     <picocli.version>4.6.2</picocli.version>
     <agrona.version>1.14.0</agrona.version>
+    <google-protos.version>2.0.1</google-protos.version>
+    <grpc.version>1.43.2</grpc.version>
   </properties>
 
   <dependencyManagement>
@@ -199,6 +201,30 @@
         <groupId>com.google.protobuf</groupId>
         <artifactId>protobuf-java</artifactId>
         <version>${protobuf-java.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.google.api.grpc</groupId>
+        <artifactId>proto-google-common-protos</artifactId>
+        <version>${google-protos.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>io.grpc</groupId>
+        <artifactId>grpc-core</artifactId>
+        <version>${grpc.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>io.grpc</groupId>
+        <artifactId>grpc-api</artifactId>
+        <version>${grpc.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>io.grpc</groupId>
+        <artifactId>grpc-netty</artifactId>
+        <version>${grpc.version}</version>
       </dependency>
 
       <dependency>
