@@ -33,6 +33,8 @@ import java.util.concurrent.CompletableFuture
 
 typealias PartitionId = Int
 
+private const val LOGSTREAM_NAME = "EZE-LOG"
+
 object EngineFactory {
 
     private val partitionId: PartitionId = 1
@@ -123,6 +125,7 @@ object EngineFactory {
             .zeebeDb(database)
             .eventApplierFactory { EventAppliers(it) }
             .commandResponseWriter(grpcResponseWriter)
+            .nodeId(0)
             .streamProcessorFactory { context ->
                 EngineProcessors.createEngineProcessors(
                     context,
@@ -152,6 +155,7 @@ object EngineFactory {
         val builder = LogStream.builder()
             .withPartitionId(partitionId)
             .withLogStorage(logStorage)
+            .withLogName(LOGSTREAM_NAME)
             .withActorSchedulingService(scheduler)
 
         val theFuture = CompletableFuture<LogStream>()
