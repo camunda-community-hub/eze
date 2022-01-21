@@ -73,5 +73,5 @@ jobs:
         id: docker
         timeout-minutes: 10
         run: |
-          echo ${{ secrets.GHCR_TOKEN }} | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
+          echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
           mvn -B -Pdocker -DskipTests -DdockerGoal=build -DdockerImageTag=${{ github.event.release.tag_name }} package
