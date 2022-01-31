@@ -362,7 +362,7 @@ class GrpcToLogStreamGateway(
             .addPartitions(partition)
             .setHost("0.0.0.0")
             .setPort(26500)
-            .setVersion("X.Y.Z")
+            .setVersion(javaClass.`package`.implementationVersion ?: "X.Y.Z")
             .build()
 
         val topologyResponse = GatewayOuterClass.TopologyResponse
@@ -371,7 +371,7 @@ class GrpcToLogStreamGateway(
             .setClusterSize(1)
             .setPartitionsCount(1)
             .setReplicationFactor(1)
-            .setGatewayVersion("A.B.C")
+            .setGatewayVersion(javaClass.`package`.implementationVersion ?: "A.B.C")
             .build()
 
         responseObserver.onNext(topologyResponse)
