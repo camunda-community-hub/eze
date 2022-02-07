@@ -65,7 +65,7 @@ object EngineFactory {
         val streamWriter = logStream.newLogStreamRecordWriter().join()
         streamWritersByPartition[partitionId] = streamWriter
 
-        val gateway = GrpcToLogStreamGateway(streamWriter)
+        val gateway = GrpcToLogStreamGateway(logStream.newLogStreamRecordWriter().join())
         val grpcServer = ServerBuilder.forPort(ZeebeEngineImpl.PORT).addService(gateway).build()
 
         val zeebeDb = createDatabase()

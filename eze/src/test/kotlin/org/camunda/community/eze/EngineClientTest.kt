@@ -12,6 +12,8 @@ import io.camunda.zeebe.client.api.command.ClientException
 import io.camunda.zeebe.client.api.response.ActivatedJob
 import io.camunda.zeebe.client.api.response.PartitionBrokerHealth
 import io.camunda.zeebe.client.api.response.PartitionBrokerRole
+import io.camunda.zeebe.client.api.response.ProcessInstanceEvent
+import io.camunda.zeebe.client.api.worker.JobClient
 import io.camunda.zeebe.model.bpmn.Bpmn
 import io.camunda.zeebe.protocol.record.intent.Intent
 import io.camunda.zeebe.protocol.record.intent.JobIntent
@@ -31,6 +33,8 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import java.time.Duration
+import java.util.*
+
 
 @ExtendWith(PrintRecordStreamExtension::class)
 class EngineClientTest {
@@ -763,6 +767,58 @@ class EngineClientTest {
                 .firstOrNull()
 
             assertThat(processCompleted).isNotNull
+        }
+    }
+
+    // regression test https://github.com/camunda-cloud/zeebe-process-test/issues/158
+    @Test
+    @Throws(InterruptedException::class)
+    fun testJobsCanBeProcessedAsynchronouslyByWorker() {
+        // given
+        zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
+        zeebeClient
+            .newWorker()
+            .jobType("jobType")
+            .handler { client: JobClient, job: ActivatedJob ->
+                client.newCompleteCommand(job).send()
+            }
+            .open()
+
+        zeebeClient
+            .newDeployCommand()
+            .addProcessModel(
+                Bpmn.createExecutableProcess("simpleProcess")
+                    .startEvent()
+                    .serviceTask("task") { it.zeebeJobType("jobType").multiInstance().parallel().zeebeInputElement("idx").zeebeInputCollection("=indexes") }
+                    .endEvent()
+                    .done(),
+                "simpleProcess.bpmn"
+            )
+            .send()
+            .join()
+
+        // when
+        val processInstance = zeebeClient.newCreateInstanceCommand().bpmnProcessId("simpleProcess")
+            .latestVersion()
+            .variables(mapOf("indexes" to listOf(1, 2, 3)))
+            .withResult()
+            .send()
+            .join()
+
+
+        // then
+        await.untilAsserted {
+            val processInstanceRecord = zeebeEngine
+                .processInstanceRecords()
+                .withRecordType(events = true)
+                .withIntent(ProcessInstanceIntent.ELEMENT_COMPLETED)
+                .withElementType(BpmnElementType.PROCESS)
+                .firstOrNull()!!.value
+
+            assertThat(processInstanceRecord.processDefinitionKey).isEqualTo(processInstance.processDefinitionKey)
+            assertThat(processInstanceRecord.bpmnProcessId).isEqualTo(processInstance.bpmnProcessId)
+            assertThat(processInstanceRecord.version).isEqualTo(processInstance.version)
+            assertThat(processInstanceRecord.bpmnElementType).isEqualTo(BpmnElementType.PROCESS)
         }
     }
 
