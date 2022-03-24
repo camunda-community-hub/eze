@@ -67,7 +67,7 @@
     <scala-library.version>2.13.8</scala-library.version>
     <picocli.version>4.6.3</picocli.version>
     <agrona.version>1.15.0</agrona.version>
-    <google-protos.version>2.7.4</google-protos.version>
+    <google-protos.version>2.8.0</google-protos.version>
     <grpc.version>1.45.0</grpc.version>
   </properties>
 
