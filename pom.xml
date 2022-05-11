@@ -42,7 +42,7 @@
     <license.header>licenses/COPYING-HEADER.txt</license.header>
 
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <version.java>11</version.java>
+    <version.java>17</version.java>
     <maven.version>3.0</maven.version>
 
     <kotlin.version>1.6.21</kotlin.version>
