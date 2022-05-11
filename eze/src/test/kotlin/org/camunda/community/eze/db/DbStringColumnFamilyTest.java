@@ -46,13 +46,13 @@ public final class DbStringColumnFamilyTest {
   }
 
   @Test
-  public void shouldPutValue() {
+  public void shouldInsertValue() {
     // given
     key.wrapString("foo");
     value.wrapString("baring");
 
     // when
-    columnFamily.put(key, value);
+    columnFamily.insert(key, value);
     value.wrapString("yes");
 
     // then
@@ -230,6 +230,6 @@ public final class DbStringColumnFamilyTest {
   private void putKeyValuePair(final String key, final String value) {
     this.key.wrapString(key);
     this.value.wrapString(value);
-    columnFamily.put(this.key, this.value);
+    columnFamily.upsert(this.key, this.value);
   }
 }

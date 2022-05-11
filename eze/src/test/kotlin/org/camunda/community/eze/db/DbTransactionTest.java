@@ -79,9 +79,9 @@ public final class DbTransactionTest {
     // when
     transactionContext.runInTransaction(
         () -> {
-          oneColumnFamily.put(oneKey, oneValue);
-          twoColumnFamily.put(twoKey, twoValue);
-          threeColumnFamily.put(threeKey, threeValue);
+          oneColumnFamily.upsert(oneKey, oneValue);
+          twoColumnFamily.upsert(twoKey, twoValue);
+          threeColumnFamily.upsert(threeKey, threeValue);
         });
 
     // then
@@ -98,7 +98,7 @@ public final class DbTransactionTest {
 
     transactionContext.runInTransaction(
         () -> {
-          oneColumnFamily.put(oneKey, oneValue);
+          oneColumnFamily.upsert(oneKey, oneValue);
           oneColumnFamily.get(oneKey);
           oneKey.wrapLong(-1);
 
@@ -125,9 +125,9 @@ public final class DbTransactionTest {
     final ZeebeDbTransaction transaction = transactionContext.getCurrentTransaction();
     transaction.run(
         () -> {
-          oneColumnFamily.put(oneKey, oneValue);
-          twoColumnFamily.put(twoKey, twoValue);
-          threeColumnFamily.put(threeKey, threeValue);
+          oneColumnFamily.upsert(oneKey, oneValue);
+          twoColumnFamily.upsert(twoKey, twoValue);
+          threeColumnFamily.upsert(threeKey, threeValue);
         });
 
     // when
@@ -154,9 +154,9 @@ public final class DbTransactionTest {
     final ZeebeDbTransaction transaction = transactionContext.getCurrentTransaction();
     transaction.run(
         () -> {
-          oneColumnFamily.put(oneKey, oneValue);
-          twoColumnFamily.put(twoKey, twoValue);
-          threeColumnFamily.put(threeKey, threeValue);
+          oneColumnFamily.upsert(oneKey, oneValue);
+          twoColumnFamily.upsert(twoKey, twoValue);
+          threeColumnFamily.upsert(threeKey, threeValue);
         });
 
     // when
@@ -204,15 +204,15 @@ public final class DbTransactionTest {
           final ZeebeDbTransaction sameTransaction = transactionContext.getCurrentTransaction();
           sameTransaction.run(
               () -> {
-                oneColumnFamily.put(oneKey, oneValue);
-                twoColumnFamily.put(twoKey, twoValue);
-                threeColumnFamily.put(threeKey, threeValue);
+                oneColumnFamily.upsert(oneKey, oneValue);
+                twoColumnFamily.upsert(twoKey, twoValue);
+                threeColumnFamily.upsert(threeKey, threeValue);
               });
           sameTransaction.commit();
 
           // then it is committed but available in this transaction
           assertThat(oneColumnFamily.exists(oneKey)).isTrue();
-          oneColumnFamily.delete(oneKey);
+          oneColumnFamily.deleteIfExists(oneKey);
 
           assertThat(twoColumnFamily.exists(twoKey)).isTrue();
           assertThat(threeColumnFamily.exists(threeKey)).isTrue();
@@ -239,9 +239,9 @@ public final class DbTransactionTest {
     final ZeebeDbTransaction transaction = transactionContext.getCurrentTransaction();
     transaction.run(
         () -> {
-          oneColumnFamily.put(oneKey, oneValue);
-          twoColumnFamily.put(twoKey, twoValue);
-          threeColumnFamily.put(threeKey, threeValue);
+          oneColumnFamily.upsert(oneKey, oneValue);
+          twoColumnFamily.upsert(twoKey, twoValue);
+          threeColumnFamily.upsert(threeKey, threeValue);
         });
 
     // when
@@ -263,7 +263,7 @@ public final class DbTransactionTest {
     // when
     transactionContext.runInTransaction(
         () -> {
-          oneColumnFamily.put(oneKey, oneValue);
+          oneColumnFamily.upsert(oneKey, oneValue);
           final DbLong value = oneColumnFamily.get(oneKey);
           actualValue.set(value.getValue());
         });
@@ -279,7 +279,7 @@ public final class DbTransactionTest {
     final Map<Long, Long> actualValues = new HashMap<>();
     oneKey.wrapLong(1);
     oneValue.wrapLong(-1);
-    oneColumnFamily.put(oneKey, oneValue);
+    oneColumnFamily.upsert(oneKey, oneValue);
 
     // when
     transactionContext.runInTransaction(
@@ -287,12 +287,12 @@ public final class DbTransactionTest {
           // update value
           oneKey.wrapLong(1);
           oneValue.wrapLong(-2);
-          oneColumnFamily.put(oneKey, oneValue);
+          oneColumnFamily.upsert(oneKey, oneValue);
 
           // create new key-value pair
           oneKey.wrapLong(2);
           oneValue.wrapLong(-3);
-          oneColumnFamily.put(oneKey, oneValue);
+          oneColumnFamily.upsert(oneKey, oneValue);
 
           actualValues.put(oneKey.getValue(), oneColumnFamily.get(oneKey).getValue());
           oneKey.wrapLong(1);
@@ -313,11 +313,11 @@ public final class DbTransactionTest {
 
     oneKey.wrapLong(1);
     oneValue.wrapLong(-1);
-    oneColumnFamily.put(oneKey, oneValue);
+    oneColumnFamily.upsert(oneKey, oneValue);
 
     oneKey.wrapLong(2);
     oneValue.wrapLong(-2);
-    oneColumnFamily.put(oneKey, oneValue);
+    oneColumnFamily.upsert(oneKey, oneValue);
 
     // when
     transactionContext.runInTransaction(
@@ -325,12 +325,12 @@ public final class DbTransactionTest {
           // update old value
           oneKey.wrapLong(2);
           oneValue.wrapLong(-5);
-          oneColumnFamily.put(oneKey, oneValue);
+          oneColumnFamily.upsert(oneKey, oneValue);
 
           // create new key-value pair
           oneKey.wrapLong(3);
           oneValue.wrapLong(-3);
-          oneColumnFamily.put(oneKey, oneValue);
+          oneColumnFamily.upsert(oneKey, oneValue);
 
           oneColumnFamily.forEach((k, v) -> actualValues.put(k.getValue(), v.getValue()));
         });
@@ -348,15 +348,15 @@ public final class DbTransactionTest {
     // given
     oneKey.wrapLong(1);
     oneValue.wrapLong(-1);
-    oneColumnFamily.put(oneKey, oneValue);
+    oneColumnFamily.upsert(oneKey, oneValue);
 
     oneKey.wrapLong(2);
     oneValue.wrapLong(-2);
-    oneColumnFamily.put(oneKey, oneValue);
+    oneColumnFamily.upsert(oneKey, oneValue);
 
     // when
     transactionContext.runInTransaction(
-        () -> oneColumnFamily.forEach((k, v) -> oneColumnFamily.delete(k)));
+        () -> oneColumnFamily.forEach((k, v) -> oneColumnFamily.deleteIfExists(k)));
 
     // then
     assertThat(oneColumnFamily.exists(oneKey)).isFalse();
@@ -370,15 +370,15 @@ public final class DbTransactionTest {
     final AtomicLong actualValue = new AtomicLong(0);
     oneKey.wrapLong(1);
     oneValue.wrapLong(-1);
-    oneColumnFamily.put(oneKey, oneValue);
+    oneColumnFamily.upsert(oneKey, oneValue);
 
     twoValue.wrapLong(192313);
 
     // when
-    oneColumnFamily.put(oneKey, oneValue);
+    oneColumnFamily.upsert(oneKey, oneValue);
     transactionContext.runInTransaction(
         () -> {
-          transactionContext.runInTransaction(() -> oneColumnFamily.put(oneKey, twoValue));
+          transactionContext.runInTransaction(() -> oneColumnFamily.upsert(oneKey, twoValue));
           final DbLong value = oneColumnFamily.get(oneKey);
           actualValue.set(value.getValue());
         });
@@ -396,24 +396,24 @@ public final class DbTransactionTest {
 
     twoKey.wrapLong(52000);
     twoValue.wrapLong(192313);
-    twoColumnFamily.put(twoKey, twoValue);
+    twoColumnFamily.upsert(twoKey, twoValue);
 
     threeKey.wrapLong(Short.MAX_VALUE);
     threeValue.wrapLong(Integer.MAX_VALUE);
-    threeColumnFamily.put(threeKey, threeValue);
+    threeColumnFamily.upsert(threeKey, threeValue);
 
     // when
     transactionContext.runInTransaction(
         () -> {
           // create
-          oneColumnFamily.put(oneKey, oneValue);
+          oneColumnFamily.upsert(oneKey, oneValue);
 
           // delete
-          twoColumnFamily.delete(twoKey);
+          twoColumnFamily.deleteIfExists(twoKey);
 
           // update
           threeValue.wrapLong(Integer.MIN_VALUE);
-          threeColumnFamily.put(threeKey, threeValue);
+          threeColumnFamily.upsert(threeKey, threeValue);
         });
 
     // then
@@ -436,10 +436,10 @@ public final class DbTransactionTest {
     transactionContext.runInTransaction(
         () -> {
           // create
-          oneColumnFamily.put(oneKey, oneValue);
+          oneColumnFamily.upsert(oneKey, oneValue);
 
           // delete
-          oneColumnFamily.delete(oneKey);
+          oneColumnFamily.deleteIfExists(oneKey);
         });
 
     // then
@@ -454,7 +454,7 @@ public final class DbTransactionTest {
 
     twoKey.wrapLong(52000);
     twoValue.wrapLong(192313);
-    twoColumnFamily.put(twoKey, twoValue);
+    twoColumnFamily.upsert(twoKey, twoValue);
 
     threeKey.wrapLong(Short.MAX_VALUE);
     threeValue.wrapLong(Integer.MAX_VALUE);
@@ -464,9 +464,9 @@ public final class DbTransactionTest {
     try {
       transactionContext.runInTransaction(
           () -> {
-            oneColumnFamily.put(oneKey, oneValue);
-            twoColumnFamily.delete(twoKey);
-            threeColumnFamily.put(threeKey, threeValue);
+            oneColumnFamily.upsert(oneKey, oneValue);
+            twoColumnFamily.deleteIfExists(twoKey);
+            threeColumnFamily.upsert(threeKey, threeValue);
             throw new RuntimeException();
           });
     } catch (final Exception e) {
@@ -484,15 +484,15 @@ public final class DbTransactionTest {
     // given
     oneKey.wrapLong(1);
     oneValue.wrapLong(-1);
-    oneColumnFamily.put(oneKey, oneValue);
+    oneColumnFamily.upsert(oneKey, oneValue);
 
     // when
     assertThat(oneColumnFamily.get(oneKey).getValue()).isEqualTo(-1);
     transactionContext.runInTransaction(
         () -> {
-          oneColumnFamily.delete(oneKey);
+          oneColumnFamily.deleteIfExists(oneKey);
           oneValue.wrapLong(-2);
-          oneColumnFamily.put(oneKey, oneValue);
+          oneColumnFamily.upsert(oneKey, oneValue);
         });
 
     // then
