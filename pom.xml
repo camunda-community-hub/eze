@@ -289,6 +289,26 @@
         <artifactId>agrona</artifactId>
         <version>${agrona.version}</version>
       </dependency>
+
+      <!-- additional dependencies because of different versions -->
+      <dependency>
+        <groupId>org.camunda.feel</groupId>
+        <artifactId>feel-engine</artifactId>
+        <version>1.14.2</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-lang3</artifactId>
+        <version>3.11</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.awaitility</groupId>
+        <artifactId>awaitility</artifactId>
+        <version>${awaitility.version}</version>
+      </dependency>
+
     </dependencies>
   </dependencyManagement>
 
