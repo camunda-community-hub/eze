@@ -8,6 +8,8 @@
 package org.camunda.community.eze.db;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.camunda.zeebe.db.ColumnFamily;
 import io.camunda.zeebe.db.ZeebeDb;
@@ -45,13 +47,13 @@ public final class ColumnFamilyTest {
   }
 
   @Test
-  public void shouldPutValue() {
+  public void shouldInsertValue() {
     // given
     key.wrapLong(1213);
     value.wrapLong(255);
 
     // when
-    columnFamily.put(key, value);
+    columnFamily.insert(key, value);
     value.wrapLong(221);
 
     // then
@@ -62,6 +64,81 @@ public final class ColumnFamilyTest {
 
     // zbLong and value are referencing the same object
     assertThat(value.getValue()).isEqualTo(255);
+  }
+
+  @Test
+  public void shouldNotInsertIfExist() {
+    // given
+    key.wrapLong(1);
+    value.wrapLong(10);
+
+    columnFamily.insert(key, value);
+
+    // when/then
+    assertThatThrownBy(() -> columnFamily.insert(key, value))
+        .isInstanceOf(IllegalStateException.class);
+  }
+
+  @Test
+  public void shouldUpdateValue() {
+    // given
+    key.wrapLong(1213);
+    value.wrapLong(255);
+    columnFamily.insert(key, value);
+
+    // when
+    value.wrapLong(256);
+    columnFamily.update(key, value);
+
+    // then
+    final DbLong zbLong = columnFamily.get(key);
+
+    assertThat(zbLong).isNotNull();
+    assertThat(zbLong.getValue()).isEqualTo(256);
+  }
+
+  @Test
+  public void shouldNotUpdateIfNotExist() {
+    // given
+    key.wrapLong(1);
+    value.wrapLong(10);
+
+    // when/then
+    assertThatThrownBy(() -> columnFamily.update(key, value))
+        .isInstanceOf(IllegalStateException.class);
+  }
+
+  @Test
+  public void shouldUpsertIfExist() {
+    // given
+    key.wrapLong(1);
+    value.wrapLong(10);
+
+    columnFamily.insert(key, value);
+
+    // when
+    value.wrapLong(11);
+    columnFamily.upsert(key, value);
+
+    // then
+    final var persistedValue = columnFamily.get(key);
+
+    assertThat(persistedValue.getValue()).isEqualTo(11);
+  }
+
+  @Test
+  public void shouldUpsertIfNotExist() {
+    // given
+    key.wrapLong(1);
+    value.wrapLong(10);
+
+    // when
+    columnFamily.upsert(key, value);
+
+    // then
+    final var persistedValue = columnFamily.get(key);
+
+    assertThat(persistedValue.getValue()).isEqualTo(10);
   }
 
   @Test
@@ -149,12 +226,12 @@ public final class ColumnFamilyTest {
   }
 
   @Test
-  public void shouldDelete() {
+  public void shouldDeleteExisting() {
     // given
     putKeyValuePair(1213, 255);
 
     // when
-    columnFamily.delete(key);
+    columnFamily.deleteExisting(key);
 
     // then
     final boolean exists = columnFamily.exists(key);
@@ -165,13 +242,51 @@ public final class ColumnFamilyTest {
   }
 
   @Test
+  public void shouldNotDeleteExistingIfNotExist() {
+    // given
+    key.wrapLong(1);
+    value.wrapLong(10);
+
+    // when/then
+    assertThatThrownBy(() -> columnFamily.deleteExisting(key))
+        .isInstanceOf(IllegalStateException.class);
+  }
+
+  @Test
+  public void shouldDeleteIfExists() {
+    // given
+    key.wrapLong(1);
+    value.wrapLong(10);
+
+    columnFamily.insert(key, value);
+
+    // when
+    columnFamily.deleteIfExists(key);
+
+    // then
+    final var persistedValue = columnFamily.get(key);
+
+    assertThat(persistedValue).isNull();
+  }
+
+  @Test
+  public void shouldIgnoreDeleteIfNotExist() {
+    // given
+    key.wrapLong(1);
+    value.wrapLong(10);
+
+    // when/then
+    assertThatCode(() -> columnFamily.deleteIfExists(key)).doesNotThrowAnyException();
+  }
+
+  @Test
   public void shouldNotDeleteDifferentKey() {
     // given
     putKeyValuePair(1213, 255);
 
     // when
     key.wrapLong(700);
-    columnFamily.delete(key);
+    columnFamily.deleteIfExists(key);
 
     // then
     key.wrapLong(1213);
@@ -235,7 +350,7 @@ public final class ColumnFamilyTest {
     // when
     columnFamily.forEach(
         (key, value) -> {
-          columnFamily.delete(key);
+          columnFamily.deleteIfExists(key);
         });
 
     final List<Long> keys = new ArrayList<>();
@@ -302,7 +417,7 @@ public final class ColumnFamilyTest {
     // when
     columnFamily.whileTrue(
         (key, value) -> {
-          columnFamily.delete(key);
+          columnFamily.deleteIfExists(key);
           return key.getValue() != 4567;
         });
 
@@ -326,13 +441,13 @@ public final class ColumnFamilyTest {
     putKeyValuePair(1, 10);
     assertThat(columnFamily.isEmpty()).isFalse();
 
-    columnFamily.delete(key);
+    columnFamily.deleteIfExists(key);
     assertThat(columnFamily.isEmpty()).isTrue();
   }
 
   private void putKeyValuePair(final int key, final int value) {
     this.key.wrapLong(key);
     this.value.wrapLong(value);
-    columnFamily.put(this.key, this.value);
+    columnFamily.upsert(this.key, this.value);
   }
 }

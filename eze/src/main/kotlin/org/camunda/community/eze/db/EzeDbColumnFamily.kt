@@ -37,7 +37,25 @@ class EzeDbColumnFamily<ColumnFamilyNames : Enum<ColumnFamilyNames>,
         }
     }
 
-    override fun put(key: KeyType, value: ValueType) {
+    override fun insert(key: KeyType, value: ValueType) {
+        if (exists(key)) {
+            throw IllegalStateException("An entry with the key $key already exists.")
+        }
+        put(key, value)
+    }
+
+    override fun update(key: KeyType, value: ValueType) {
+        if (!exists(key)) {
+            throw IllegalStateException("An entry with the key $key doesn't exist.")
+        }
+        put(key, value)
+    }
+
+    override fun upsert(key: KeyType, value: ValueType) {
+        put(key, value)
+    }
+
+    private fun put(key: KeyType, value: ValueType) {
         ensureInOpenTransaction(
             context
         ) { transaction ->
@@ -52,6 +70,7 @@ class EzeDbColumnFamily<ColumnFamilyNames : Enum<ColumnFamilyNames>,
             )
         }
     }
+
 
     override fun get(key: KeyType): ValueType? {
         columnFamilyContext.writeKey(key)
@@ -103,7 +122,18 @@ class EzeDbColumnFamily<ColumnFamilyNames : Enum<ColumnFamilyNames>,
         whileEqualPrefix(context, keyPrefix, visitor)
     }
 
-    override fun delete(key: KeyType) {
+    override fun deleteExisting(key: KeyType) {
+        if (!exists(key)) {
+            throw IllegalStateException("An entry with the key $key doesn't exist.")
+        }
+        delete(key)
+    }
+
+    override fun deleteIfExists(key: KeyType) {
+        delete(key)
+    }
+
+    private fun delete(key: KeyType) {
         columnFamilyContext.writeKey(key)
         ensureInOpenTransaction(
             context
