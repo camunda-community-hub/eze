@@ -46,7 +46,7 @@
     <maven.version>3.0</maven.version>
 
     <kotlin.version>1.6.21</kotlin.version>
-    <zeebe.version>8.0.2</zeebe.version>
+    <zeebe.version>8.0.3</zeebe.version>
     <netty.version>4.1.77.Final</netty.version>
 
     <version.junit>5.8.2</version.junit>
