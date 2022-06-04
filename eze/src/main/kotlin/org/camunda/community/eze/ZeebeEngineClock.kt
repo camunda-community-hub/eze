@@ -8,7 +8,10 @@
 package org.camunda.community.eze
 
 import java.time.Duration
+import java.time.Instant
 
 interface ZeebeEngineClock {
     fun increaseTime(timeToAdd: Duration)
+
+    fun getCurrentTime(): Instant
 }
