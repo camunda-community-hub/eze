@@ -42,6 +42,8 @@ class GrpcToLogStreamGateway(
     private val executor = Executors.newSingleThreadExecutor()
 
     private val responseObserverMap = mutableMapOf<Long, StreamObserver<*>>()
+    private val responseTypeMap = mutableMapOf<Long, Class<out GeneratedMessageV3>>()
+
     private val recordMetadata = RecordMetadata()
     private val requestIdGenerator = AtomicLong()
 
@@ -117,6 +119,32 @@ class GrpcToLogStreamGateway(
                     .add()
                     .setResourceName(processRequestObject.name)
                     .setResource(processRequestObject.definition.toByteArray())
+            }
+
+            writeCommandWithoutKey(recordMetadata, deploymentRecord)
+        }
+    }
+
+    override fun deployResource(
+        request: GatewayOuterClass.DeployResourceRequest,
+        responseObserver: StreamObserver<GatewayOuterClass.DeployResourceResponse>
+    ) {
+        executor.submit {
+            val requestId = registerNewRequest(responseObserver)
+
+            prepareRecordMetadata()
+                .requestId(requestId)
+                .valueType(ValueType.DEPLOYMENT)
+                .intent(DeploymentIntent.CREATE)
+
+            val deploymentRecord = DeploymentRecord()
+            val resources = deploymentRecord.resources()
+
+            request.resourcesList.forEach { resourceRequestObject ->
+                resources
+                    .add()
+                    .setResourceName(resourceRequestObject.name)
+                    .setResource(resourceRequestObject.content.toByteArray())
             }
 
             writeCommandWithoutKey(recordMetadata, deploymentRecord)
@@ -384,9 +412,12 @@ class GrpcToLogStreamGateway(
             .requestStreamId(1) // partition id
     }
 
-    private fun registerNewRequest(responseObserver: StreamObserver<*>): Long {
+    private inline fun <reified T : GeneratedMessageV3> registerNewRequest(
+        responseObserver: StreamObserver<T>
+    ): Long {
         val currentRequestId = requestIdGenerator.incrementAndGet()
         responseObserverMap[currentRequestId] = responseObserver
+        responseTypeMap[currentRequestId] = T::class.java
         return currentRequestId
     }
 
@@ -405,6 +436,10 @@ class GrpcToLogStreamGateway(
                 responseObserverMap.remove(requestId) as StreamObserver<GeneratedMessageV3>
             streamObserver.onError(StatusProto.toStatusException(error))
         }
+    }
+
+    fun getExpectedResponseType(requestId: Long): Class<out GeneratedMessageV3>? {
+        return responseTypeMap[requestId]
     }
 
     override fun close() {

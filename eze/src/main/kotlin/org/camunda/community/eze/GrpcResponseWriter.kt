@@ -33,7 +33,8 @@ import org.agrona.concurrent.UnsafeBuffer
 
 class GrpcResponseWriter(
     val responseCallback: (requestId: Long, response: GeneratedMessageV3) -> Unit,
-    val errorCallback: (requestId: Long, error: Status) -> Unit
+    val errorCallback: (requestId: Long, error: Status) -> Unit,
+    val expectedResponse: (requestId: Long) -> Class<out GeneratedMessageV3>?
 ) :
     CommandResponseWriter {
 
@@ -99,7 +100,7 @@ class GrpcResponseWriter(
         }
 
         val response: GeneratedMessageV3 = when (valueType) {
-            ValueType.DEPLOYMENT -> createDeployResponse()
+            ValueType.DEPLOYMENT -> createDeployResponse(requestId)
             ValueType.PROCESS_INSTANCE_CREATION -> createProcessInstanceResponse()
             ValueType.PROCESS_INSTANCE_RESULT -> createProcessInstanceWithResultResponse()
             ValueType.PROCESS_INSTANCE -> createCancelInstanceResponse()
@@ -128,7 +129,16 @@ class GrpcResponseWriter(
         return GatewayOuterClass.ResolveIncidentResponse.newBuilder().build()
     }
 
-    private fun createDeployResponse(): GatewayOuterClass.DeployProcessResponse {
+    private fun createDeployResponse(requestId: Long) =
+        expectedResponse(requestId)?.let {
+            when (it) {
+                GatewayOuterClass.DeployProcessResponse::class.java -> createDeployProcessResponse()
+                GatewayOuterClass.DeployResourceResponse::class.java -> createDeployResourceResponse()
+                else -> createDeployProcessResponse()
+            }
+        } ?: createDeployProcessResponse()
+
+    private fun createDeployProcessResponse(): GatewayOuterClass.DeployProcessResponse {
         val deployment = DeploymentRecord()
         deployment.wrap(valueBufferView)
 
@@ -145,6 +155,59 @@ class GrpcResponseWriter(
                         .build()
                 }
             ).build()
+    }
+
+    private fun createDeployResourceResponse(): GatewayOuterClass.DeployResourceResponse {
+        val deployment = DeploymentRecord()
+        deployment.wrap(valueBufferView)
+
+        val responseBuilder = GatewayOuterClass.DeployResourceResponse
+            .newBuilder()
+            .setKey(key)
+
+        deployment.processesMetadata().map {
+            GatewayOuterClass.Deployment.newBuilder()
+                .setProcess(
+                    GatewayOuterClass.ProcessMetadata.newBuilder()
+                        .setProcessDefinitionKey(it.processDefinitionKey)
+                        .setBpmnProcessId(it.bpmnProcessId)
+                        .setVersion(it.version)
+                        .setResourceName(it.resourceName)
+                        .build()
+                )
+                .build()
+        }.forEach(responseBuilder::addDeployments)
+
+        deployment.decisionRequirementsMetadata().map {
+            GatewayOuterClass.Deployment.newBuilder()
+                .setDecisionRequirements(
+                    GatewayOuterClass.DecisionRequirementsMetadata.newBuilder()
+                        .setDecisionRequirementsKey(it.decisionRequirementsKey)
+                        .setDmnDecisionRequirementsId(it.decisionRequirementsId)
+                        .setDmnDecisionRequirementsName(it.decisionRequirementsName)
+                        .setVersion(it.decisionRequirementsVersion)
+                        .setResourceName(it.resourceName)
+                        .build()
+                )
+                .build()
+        }.forEach(responseBuilder::addDeployments)
+
+        deployment.decisionsMetadata().map {
+            GatewayOuterClass.Deployment.newBuilder()
+                .setDecision(
+                    GatewayOuterClass.DecisionMetadata.newBuilder()
+                        .setDecisionKey(it.decisionKey)
+                        .setDmnDecisionId(it.decisionId)
+                        .setDmnDecisionName(it.decisionName)
+                        .setVersion(it.version)
+                        .setDecisionRequirementsKey(it.decisionRequirementsKey)
+                        .setDmnDecisionRequirementsId(it.decisionRequirementsId)
+                        .build()
+                )
+                .build()
+        }.forEach(responseBuilder::addDeployments)
+
+        return responseBuilder.build()
     }
 
     private fun createProcessInstanceResponse(): GatewayOuterClass.CreateProcessInstanceResponse {

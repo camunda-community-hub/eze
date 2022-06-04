@@ -12,7 +12,6 @@ import io.camunda.zeebe.client.api.command.ClientException
 import io.camunda.zeebe.client.api.response.ActivatedJob
 import io.camunda.zeebe.client.api.response.PartitionBrokerHealth
 import io.camunda.zeebe.client.api.response.PartitionBrokerRole
-import io.camunda.zeebe.client.api.response.ProcessInstanceEvent
 import io.camunda.zeebe.client.api.worker.JobClient
 import io.camunda.zeebe.model.bpmn.Bpmn
 import io.camunda.zeebe.protocol.record.intent.Intent
@@ -33,7 +32,6 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import java.time.Duration
-import java.util.*
 
 
 @ExtendWith(PrintRecordStreamExtension::class)
@@ -166,6 +164,36 @@ class EngineClientTest {
         // when
         val deployment = zeebeClient
             .newDeployCommand()
+            .addProcessModel(
+                Bpmn.createExecutableProcess("simpleProcess")
+                    .startEvent()
+                    .endEvent()
+                    .done(),
+                "simpleProcess.bpmn"
+            )
+            .send()
+            .join()
+
+        // then
+        assertThat(deployment.key).isPositive
+        assertThat(deployment.processes).isNotEmpty
+
+        val process = deployment.processes[0]
+
+        assertThat(process.version).isEqualTo(1)
+        assertThat(process.resourceName).isEqualTo("simpleProcess.bpmn")
+        assertThat(process.bpmnProcessId).isEqualTo("simpleProcess")
+        assertThat(process.processDefinitionKey).isPositive
+    }
+
+    @Test
+    fun `should deploy resources`() {
+        // given
+        zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
+
+        // when
+        val deployment = zeebeClient
+            .newDeployResourceCommand()
             .addProcessModel(
                 Bpmn.createExecutableProcess("simpleProcess")
                     .startEvent()
@@ -789,7 +817,10 @@ class EngineClientTest {
             .addProcessModel(
                 Bpmn.createExecutableProcess("simpleProcess")
                     .startEvent()
-                    .serviceTask("task") { it.zeebeJobType("jobType").multiInstance().parallel().zeebeInputElement("idx").zeebeInputCollection("=indexes") }
+                    .serviceTask("task") {
+                        it.zeebeJobType("jobType").multiInstance().parallel()
+                            .zeebeInputElement("idx").zeebeInputCollection("=indexes")
+                    }
                     .endEvent()
                     .done(),
                 "simpleProcess.bpmn"
