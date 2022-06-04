@@ -72,7 +72,8 @@ object EngineFactory {
 
         val grpcResponseWriter = GrpcResponseWriter(
             responseCallback = gateway::responseCallback,
-            errorCallback = gateway::errorCallback
+            errorCallback = gateway::errorCallback,
+            expectedResponse = gateway::getExpectedResponseType
         )
 
         val streamProcessor = createStreamProcessor(
