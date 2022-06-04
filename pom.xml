@@ -181,6 +181,13 @@
         <version>${assertj.version}</version>
       </dependency>
 
+      <!-- resolve version conflict (https://github.com/camunda-community-hub/eze/pull/155) -->
+      <dependency>
+        <groupId>net.java.dev.jna</groupId>
+        <artifactId>jna</artifactId>
+        <version>5.8.0</version>
+      </dependency>
+
       <dependency>
         <groupId>org.awaitility</groupId>
         <artifactId>awaitility-kotlin</artifactId>
