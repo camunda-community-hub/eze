@@ -21,6 +21,7 @@ import io.camunda.zeebe.logstreams.storage.LogStorage
 import io.camunda.zeebe.protocol.impl.record.CopiedRecord
 import io.camunda.zeebe.protocol.impl.record.RecordMetadata
 import io.camunda.zeebe.protocol.record.Record
+import io.camunda.zeebe.util.FeatureFlags
 import io.camunda.zeebe.util.sched.Actor
 import io.camunda.zeebe.util.sched.ActorScheduler
 import io.camunda.zeebe.util.sched.ActorSchedulingService
@@ -136,7 +137,8 @@ object EngineFactory {
                     SinglePartitionDeploymentResponder(),
                     { jobType ->
                         // new job is available
-                    }
+                    },
+                    FeatureFlags.createDefault()
                 )
             }
             .actorSchedulingService(scheduler)
