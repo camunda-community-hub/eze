@@ -62,7 +62,7 @@
     <slf4j-api.version>1.7.36</slf4j-api.version>
     <snakeyaml.version>1.30</snakeyaml.version>
     <guava.version>31.1-jre</guava.version>
-    <protobuf-java.version>3.21.1</protobuf-java.version>
+    <protobuf-java.version>3.21.2</protobuf-java.version>
     <jackson.version>2.13.3</jackson.version>
     <scala-library.version>2.13.8</scala-library.version>
     <picocli.version>4.6.3</picocli.version>
