@@ -299,7 +299,7 @@
       <dependency>
         <groupId>org.camunda.feel</groupId>
         <artifactId>feel-engine</artifactId>
-        <version>1.14.2</version>
+        <version>1.15.0</version>
       </dependency>
 
       <dependency>
