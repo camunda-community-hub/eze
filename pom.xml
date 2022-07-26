@@ -47,7 +47,7 @@
     <zeebe.version>8.0.4</zeebe.version>
     <netty.version>4.1.78.Final</netty.version>
 
-    <version.junit>5.8.2</version.junit>
+    <version.junit>5.9.0</version.junit>
     <version.jackson>2.13.3</version.jackson>
 
     <plugin.version.surefire>3.0.0-M7</plugin.version.surefire>
