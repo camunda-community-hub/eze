@@ -58,7 +58,7 @@
     <plugin.version.jib>3.3.0</plugin.version.jib>
     <assertj.version>3.23.1</assertj.version>
     <awaitility.version>4.2.0</awaitility.version>
-    <log4j.version>2.18.0</log4j.version>
+    <log4j.version>2.19.0</log4j.version>
     <slf4j-api.version>2.0.1</slf4j-api.version>
     <snakeyaml.version>1.32</snakeyaml.version>
     <guava.version>31.1-jre</guava.version>
