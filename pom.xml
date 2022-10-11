@@ -64,7 +64,7 @@
     <guava.version>31.1-jre</guava.version>
     <protobuf-java.version>3.21.7</protobuf-java.version>
     <jackson.version>2.13.4</jackson.version>
-    <scala-library.version>2.13.9</scala-library.version>
+    <scala-library.version>2.13.10</scala-library.version>
     <picocli.version>4.6.3</picocli.version>
     <agrona.version>1.17.1</agrona.version>
     <google-protos.version>2.9.6</google-protos.version>
