@@ -9,6 +9,7 @@ package org.camunda.community.eze
 
 import io.camunda.zeebe.db.ZeebeDb
 import io.camunda.zeebe.engine.Engine
+import io.camunda.zeebe.engine.api.CommandResponseWriter
 import io.camunda.zeebe.engine.api.InterPartitionCommandSender
 import io.camunda.zeebe.engine.processing.EngineProcessors
 import io.camunda.zeebe.engine.processing.deployment.distribute.DeploymentDistributionCommandSender
@@ -34,8 +35,8 @@ import io.camunda.zeebe.scheduler.clock.ControlledActorClock
 import io.camunda.zeebe.streamprocessor.StreamProcessor
 import io.camunda.zeebe.streamprocessor.StreamProcessorMode
 import io.camunda.zeebe.util.FeatureFlags
-import io.grpc.ServerBuilder
 import org.camunda.community.eze.db.EzeZeebeDbFactory
+import org.camunda.community.eze.grpc.EzeGatewayFactory
 import java.nio.file.Files
 import java.util.concurrent.CompletableFuture
 
@@ -73,16 +74,12 @@ object EngineFactory {
         val streamWriter = logStream.newLogStreamRecordWriter().join()
         streamWritersByPartition[partitionId] = streamWriter
 
-        val gateway = GrpcToLogStreamGateway(logStream.newLogStreamRecordWriter().join())
-        val grpcServer = ServerBuilder.forPort(ZeebeEngineImpl.PORT).addService(gateway).build()
+        val gateway = EzeGatewayFactory.createGateway(
+            port = ZeebeEngineImpl.PORT,
+            streamWriter = logStream.newLogStreamRecordWriter().join()
+        )
 
         val zeebeDb = createDatabase()
-
-        val grpcResponseWriter = GrpcResponseWriter(
-            responseCallback = gateway::responseCallback,
-            errorCallback = gateway::errorCallback,
-            expectedResponse = gateway::getExpectedResponseType
-        )
 
         val partitionCommandSender = createPartitionCommandSender()
 
@@ -90,7 +87,7 @@ object EngineFactory {
             logStream = logStream,
             database = zeebeDb,
             scheduler = scheduler,
-            grpcResponseWriter = grpcResponseWriter,
+            responseWriter = gateway.getResponseWriter(),
             partitionCommandSender = partitionCommandSender
         )
 
@@ -105,14 +102,12 @@ object EngineFactory {
 
         return ZeebeEngineImpl(
             startCallback = {
-                grpcServer.start()
+                gateway.start()
                 streamProcessor.openAsync(false).join()
                 exporterRunner.open()
             },
             stopCallback = {
-                grpcServer.shutdownNow()
-                grpcServer.awaitTermination()
-                gateway.close()
+                gateway.stop()
                 exporterRunner.close()
                 streamProcessor.close()
                 zeebeDb.close()
@@ -128,14 +123,14 @@ object EngineFactory {
         logStream: LogStream,
         database: ZeebeDb<ZbColumnFamilies>,
         scheduler: ActorSchedulingService,
-        grpcResponseWriter: GrpcResponseWriter,
+        responseWriter: CommandResponseWriter,
         partitionCommandSender: InterPartitionCommandSender
     ): StreamProcessor {
         return StreamProcessor.builder()
             .logStream(logStream)
             .zeebeDb(database)
             .eventApplierFactory { EventAppliers(it) }
-            .commandResponseWriter(grpcResponseWriter)
+            .commandResponseWriter(responseWriter)
             .partitionCommandSender(partitionCommandSender)
             .nodeId(0)
             .actorSchedulingService(scheduler)

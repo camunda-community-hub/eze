@@ -5,7 +5,7 @@
  * Licensed under the Zeebe Community License 1.1. You may not use this file
  * except in compliance with the Zeebe Community License 1.1.
  */
-package org.camunda.community.eze
+package org.camunda.community.eze.grpc
 
 import com.google.protobuf.GeneratedMessageV3
 import com.google.rpc.Code
