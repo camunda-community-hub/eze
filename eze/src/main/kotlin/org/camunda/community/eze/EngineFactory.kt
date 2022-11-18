@@ -36,6 +36,10 @@ import io.camunda.zeebe.streamprocessor.StreamProcessor
 import io.camunda.zeebe.streamprocessor.StreamProcessorMode
 import io.camunda.zeebe.util.FeatureFlags
 import org.camunda.community.eze.db.EzeZeebeDbFactory
+import org.camunda.community.eze.engine.ExporterRunner
+import org.camunda.community.eze.engine.InMemoryLogStorage
+import org.camunda.community.eze.engine.SinglePartitionCommandSender
+import org.camunda.community.eze.engine.ZeebeEngineImpl
 import org.camunda.community.eze.grpc.EzeGatewayFactory
 import java.nio.file.Files
 import java.util.concurrent.CompletableFuture

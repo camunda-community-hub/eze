@@ -14,7 +14,7 @@ import io.camunda.zeebe.client.api.response.Topology;
 import java.time.Duration;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import org.camunda.community.eze.ZeebeEngineImpl;
+import org.camunda.community.eze.engine.ZeebeEngineImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import sun.misc.Signal;

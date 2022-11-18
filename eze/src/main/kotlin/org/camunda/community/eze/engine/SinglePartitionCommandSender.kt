@@ -1,4 +1,4 @@
-package org.camunda.community.eze
+package org.camunda.community.eze.engine
 
 import io.camunda.zeebe.engine.api.InterPartitionCommandSender
 import io.camunda.zeebe.logstreams.log.LogStreamRecordWriter

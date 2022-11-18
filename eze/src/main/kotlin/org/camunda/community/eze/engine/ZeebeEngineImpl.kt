@@ -5,11 +5,13 @@
  * Licensed under the Zeebe Community License 1.1. You may not use this file
  * except in compliance with the Zeebe Community License 1.1.
  */
-package org.camunda.community.eze
+package org.camunda.community.eze.engine
 
 import io.camunda.zeebe.client.ZeebeClient
 import io.camunda.zeebe.protocol.record.Record
 import io.camunda.zeebe.scheduler.clock.ControlledActorClock
+import org.camunda.community.eze.ZeebeEngine
+import org.camunda.community.eze.ZeebeEngineClock
 
 class ZeebeEngineImpl(
     val startCallback: Runnable,

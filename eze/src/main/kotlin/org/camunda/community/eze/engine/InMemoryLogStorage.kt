@@ -5,13 +5,12 @@
  * Licensed under the Zeebe Community License 1.1. You may not use this file
  * except in compliance with the Zeebe Community License 1.1.
  */
-package org.camunda.community.eze
+package org.camunda.community.eze.engine
 
 import io.camunda.zeebe.logstreams.storage.LogStorage
 import io.camunda.zeebe.logstreams.storage.LogStorageReader
 import org.agrona.DirectBuffer
 import org.agrona.concurrent.UnsafeBuffer
-import java.lang.Exception
 import java.nio.ByteBuffer
 import java.util.*
 import java.util.concurrent.ConcurrentSkipListMap
@@ -32,7 +31,7 @@ class InMemoryLogStorage : LogStorage {
     }
 
     override fun removeCommitListener(listener: LogStorage.CommitListener) {
-       commitListeners.remove(listener)
+        commitListeners.remove(listener)
     }
 
     override fun append(
