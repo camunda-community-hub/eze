@@ -8,9 +8,14 @@
 package org.camunda.community.eze
 
 import io.camunda.zeebe.db.ZeebeDb
+import io.camunda.zeebe.engine.Engine
+import io.camunda.zeebe.engine.api.InterPartitionCommandSender
 import io.camunda.zeebe.engine.processing.EngineProcessors
-import io.camunda.zeebe.engine.processing.streamprocessor.StreamProcessor
+import io.camunda.zeebe.engine.processing.deployment.distribute.DeploymentDistributionCommandSender
+import io.camunda.zeebe.engine.processing.message.command.SubscriptionCommandSender
 import io.camunda.zeebe.engine.processing.streamprocessor.TypedEventRegistry
+import io.camunda.zeebe.engine.processing.streamprocessor.TypedRecordProcessorContext
+import io.camunda.zeebe.engine.processing.streamprocessor.TypedRecordProcessors
 import io.camunda.zeebe.engine.state.ZbColumnFamilies
 import io.camunda.zeebe.engine.state.appliers.EventAppliers
 import io.camunda.zeebe.exporter.api.Exporter
@@ -21,12 +26,14 @@ import io.camunda.zeebe.logstreams.storage.LogStorage
 import io.camunda.zeebe.protocol.impl.record.CopiedRecord
 import io.camunda.zeebe.protocol.impl.record.RecordMetadata
 import io.camunda.zeebe.protocol.record.Record
+import io.camunda.zeebe.scheduler.Actor
+import io.camunda.zeebe.scheduler.ActorScheduler
+import io.camunda.zeebe.scheduler.ActorSchedulingService
+import io.camunda.zeebe.scheduler.clock.ActorClock
+import io.camunda.zeebe.scheduler.clock.ControlledActorClock
+import io.camunda.zeebe.streamprocessor.StreamProcessor
+import io.camunda.zeebe.streamprocessor.StreamProcessorMode
 import io.camunda.zeebe.util.FeatureFlags
-import io.camunda.zeebe.util.sched.Actor
-import io.camunda.zeebe.util.sched.ActorScheduler
-import io.camunda.zeebe.util.sched.ActorSchedulingService
-import io.camunda.zeebe.util.sched.clock.ActorClock
-import io.camunda.zeebe.util.sched.clock.ControlledActorClock
 import io.grpc.ServerBuilder
 import org.camunda.community.eze.db.EzeZeebeDbFactory
 import java.nio.file.Files
@@ -43,12 +50,12 @@ object EngineFactory {
 
     private val streamWritersByPartition = mutableMapOf<PartitionId, LogStreamRecordWriter>()
 
-    private val subscriptionCommandSenderFactory = SubscriptionCommandSenderFactory(
-        writerLookUp = { partitionId ->
+    private fun streamRecordWriterLookUp(): (Int) -> LogStreamRecordWriter {
+        return { partitionId ->
             streamWritersByPartition[partitionId]
                 ?: throw RuntimeException("no stream writer found for partition '$partitionId'")
         }
-    )
+    }
 
     fun create(exporters: Iterable<Exporter> = emptyList()): ZeebeEngine {
 
@@ -77,12 +84,14 @@ object EngineFactory {
             expectedResponse = gateway::getExpectedResponseType
         )
 
+        val partitionCommandSender = createPartitionCommandSender()
+
         val streamProcessor = createStreamProcessor(
-            partitionCount = partitionCount,
             logStream = logStream,
             database = zeebeDb,
             scheduler = scheduler,
-            grpcResponseWriter
+            grpcResponseWriter = grpcResponseWriter,
+            partitionCommandSender = partitionCommandSender
         )
 
         val exporterReader = logStream.newLogStreamReader().join()
@@ -116,33 +125,54 @@ object EngineFactory {
     }
 
     private fun createStreamProcessor(
-        partitionCount: Int,
         logStream: LogStream,
         database: ZeebeDb<ZbColumnFamilies>,
         scheduler: ActorSchedulingService,
-        grpcResponseWriter: GrpcResponseWriter
+        grpcResponseWriter: GrpcResponseWriter,
+        partitionCommandSender: InterPartitionCommandSender
     ): StreamProcessor {
         return StreamProcessor.builder()
             .logStream(logStream)
             .zeebeDb(database)
             .eventApplierFactory { EventAppliers(it) }
             .commandResponseWriter(grpcResponseWriter)
+            .partitionCommandSender(partitionCommandSender)
             .nodeId(0)
-            .streamProcessorFactory { context ->
-                EngineProcessors.createEngineProcessors(
-                    context,
-                    partitionCount,
-                    subscriptionCommandSenderFactory.ofPartition(partitionId = partitionId),
-                    SinglePartitionDeploymentDistributor(),
-                    SinglePartitionDeploymentResponder(),
-                    { jobType ->
-                        // new job is available
-                    },
-                    FeatureFlags.createDefault()
-                )
-            }
             .actorSchedulingService(scheduler)
+            .streamProcessorMode(StreamProcessorMode.PROCESSING)
+            .recordProcessors(listOf(createZeebeEngine()))
             .build()
+    }
+
+    private fun createPartitionCommandSender(): InterPartitionCommandSender {
+        return SinglePartitionCommandSender(
+            writerLookUp = streamRecordWriterLookUp()
+        )
+    }
+
+    private fun createZeebeEngine(): Engine {
+        return Engine(createRecordProcessorsFactory())
+    }
+
+    private fun createRecordProcessorsFactory(): ((TypedRecordProcessorContext) -> TypedRecordProcessors) {
+        return { context ->
+            EngineProcessors.createEngineProcessors(
+                context,
+                partitionCount,
+                SubscriptionCommandSender(
+                    context.partitionId,
+                    context.partitionCommandSender
+                ),
+                DeploymentDistributionCommandSender(
+                    context.partitionId,
+                    context.partitionCommandSender
+                ),
+                { jobType ->
+                    // new job is available
+                },
+                FeatureFlags.createDefault()
+            )
+        }
     }
 
     private fun createDatabase(): ZeebeDb<ZbColumnFamilies> {

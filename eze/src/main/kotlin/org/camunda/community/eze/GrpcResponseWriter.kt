@@ -10,7 +10,7 @@ package org.camunda.community.eze
 import com.google.protobuf.GeneratedMessageV3
 import com.google.rpc.Code
 import com.google.rpc.Status
-import io.camunda.zeebe.engine.processing.streamprocessor.writers.CommandResponseWriter
+import io.camunda.zeebe.engine.api.CommandResponseWriter
 import io.camunda.zeebe.gateway.protocol.GatewayOuterClass
 import io.camunda.zeebe.protocol.impl.encoding.MsgPackConverter
 import io.camunda.zeebe.protocol.impl.record.value.deployment.DeploymentRecord
@@ -115,6 +115,7 @@ class GrpcResponseWriter(
                 JobIntent.RETRIES_UPDATED -> createJobUpdateRetriesResponse()
                 else -> TODO("not support job command '$intent'")
             }
+
             else -> TODO("not supported command '$valueType'")
         }
 

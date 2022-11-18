@@ -9,7 +9,7 @@ package org.camunda.community.eze
 
 import io.camunda.zeebe.client.ZeebeClient
 import io.camunda.zeebe.protocol.record.Record
-import io.camunda.zeebe.util.sched.clock.ControlledActorClock
+import io.camunda.zeebe.scheduler.clock.ControlledActorClock
 
 class ZeebeEngineImpl(
     val startCallback: Runnable,

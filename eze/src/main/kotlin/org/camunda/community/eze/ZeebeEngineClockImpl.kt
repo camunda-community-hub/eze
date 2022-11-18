@@ -7,7 +7,7 @@
  */
 package org.camunda.community.eze
 
-import io.camunda.zeebe.util.sched.clock.ControlledActorClock
+import io.camunda.zeebe.scheduler.clock.ControlledActorClock
 import java.time.Duration
 import java.time.Instant
 
