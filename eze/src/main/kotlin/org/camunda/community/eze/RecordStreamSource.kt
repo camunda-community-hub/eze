@@ -12,6 +12,7 @@ import io.camunda.zeebe.protocol.record.RecordValue
 import io.camunda.zeebe.protocol.record.ValueType
 import io.camunda.zeebe.protocol.record.value.*
 import io.camunda.zeebe.protocol.record.value.deployment.Process
+import org.camunda.community.eze.records.*
 
 interface RecordStreamSource {
 
@@ -19,7 +20,7 @@ interface RecordStreamSource {
 
     fun <T : RecordValue> Iterable<Record<*>>.ofValueType(valueType: ValueType): Iterable<Record<T>> {
         return filter { it.valueType == valueType }
-                .filterIsInstance<Record<T>>()
+            .filterIsInstance<Record<T>>()
     }
 
     fun processInstanceRecords(): ProcessInstanceRecordStream {
