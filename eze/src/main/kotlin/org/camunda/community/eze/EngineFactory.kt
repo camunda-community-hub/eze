@@ -23,11 +23,9 @@ import io.camunda.zeebe.exporter.api.Exporter
 import io.camunda.zeebe.logstreams.log.LogStream
 import io.camunda.zeebe.logstreams.log.LogStreamReader
 import io.camunda.zeebe.logstreams.log.LogStreamRecordWriter
-import io.camunda.zeebe.logstreams.storage.LogStorage
 import io.camunda.zeebe.protocol.impl.record.CopiedRecord
 import io.camunda.zeebe.protocol.impl.record.RecordMetadata
 import io.camunda.zeebe.protocol.record.Record
-import io.camunda.zeebe.scheduler.Actor
 import io.camunda.zeebe.scheduler.ActorScheduler
 import io.camunda.zeebe.scheduler.ActorSchedulingService
 import io.camunda.zeebe.scheduler.clock.ActorClock
@@ -37,16 +35,13 @@ import io.camunda.zeebe.streamprocessor.StreamProcessorMode
 import io.camunda.zeebe.util.FeatureFlags
 import org.camunda.community.eze.db.EzeZeebeDbFactory
 import org.camunda.community.eze.engine.ExporterRunner
-import org.camunda.community.eze.engine.InMemoryLogStorage
+import org.camunda.community.eze.engine.EzeLogStreamFactory
 import org.camunda.community.eze.engine.SinglePartitionCommandSender
 import org.camunda.community.eze.engine.ZeebeEngineImpl
 import org.camunda.community.eze.grpc.EzeGatewayFactory
 import java.nio.file.Files
-import java.util.concurrent.CompletableFuture
 
 typealias PartitionId = Int
-
-private const val LOGSTREAM_NAME = "EZE-LOG"
 
 object EngineFactory {
 
@@ -68,35 +63,31 @@ object EngineFactory {
 
         val scheduler = createActorScheduler(clock)
 
-        val logStorage = createLogStorage()
-        val logStream = createLogStream(
+        val logStream = EzeLogStreamFactory.createLogStream(
             partitionId = partitionId,
-            logStorage = logStorage,
             scheduler = scheduler
         )
 
-        val streamWriter = logStream.newLogStreamRecordWriter().join()
-        streamWritersByPartition[partitionId] = streamWriter
+        streamWritersByPartition[partitionId] = logStream.createWriter()
 
         val gateway = EzeGatewayFactory.createGateway(
             port = ZeebeEngineImpl.PORT,
-            streamWriter = logStream.newLogStreamRecordWriter().join()
+            streamWriter = logStream.createWriter()
         )
 
         val zeebeDb = createDatabase()
-
         val partitionCommandSender = createPartitionCommandSender()
 
         val streamProcessor = createStreamProcessor(
-            logStream = logStream,
+            logStream = logStream.getZeebeLogStream(),
             database = zeebeDb,
             scheduler = scheduler,
             responseWriter = gateway.getResponseWriter(),
             partitionCommandSender = partitionCommandSender
         )
 
-        val exporterReader = logStream.newLogStreamReader().join()
-        val recordStreamReader = logStream.newLogStreamReader().join()
+        val exporterReader = logStream.createReader()
+        val recordStreamReader = logStream.createReader()
 
         val exporterRunner = ExporterRunner(
             exporters = exporters,
@@ -177,38 +168,6 @@ object EngineFactory {
     private fun createDatabase(): ZeebeDb<ZbColumnFamilies> {
         val zeebeDbFactory = EzeZeebeDbFactory.getDefaultFactory<ZbColumnFamilies>()
         return zeebeDbFactory.createDb(Files.createTempDirectory("zeebeDb").toFile())
-    }
-
-    private fun createLogStream(
-        partitionId: Int,
-        logStorage: LogStorage,
-        scheduler: ActorSchedulingService
-    ): LogStream {
-        val builder = LogStream.builder()
-            .withPartitionId(partitionId)
-            .withLogStorage(logStorage)
-            .withLogName(LOGSTREAM_NAME)
-            .withActorSchedulingService(scheduler)
-
-        val theFuture = CompletableFuture<LogStream>()
-
-        scheduler.submitActor(Actor.wrap {
-            builder
-                .buildAsync()
-                .onComplete { logStream, failure ->
-                    if (failure != null) {
-                        theFuture.completeExceptionally(failure)
-                    } else {
-                        theFuture.complete(logStream)
-                    }
-                }
-        })
-
-        return theFuture.join()
-    }
-
-    private fun createLogStorage(): LogStorage {
-        return InMemoryLogStorage()
     }
 
     private fun createActorScheduler(clock: ActorClock): ActorScheduler {
