@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <artifactId>eze-root</artifactId>
@@ -11,7 +13,7 @@
     <groupId>org.camunda.community</groupId>
     <artifactId>community-hub-release-parent</artifactId>
     <version>1.3.1</version>
-    <relativePath />
+    <relativePath/>
   </parent>
 
   <modules>
@@ -45,10 +47,8 @@
 
     <kotlin.version>1.7.21</kotlin.version>
     <zeebe.version>8.0.6</zeebe.version>
-    <netty.version>4.1.85.Final</netty.version>
 
     <version.junit>5.9.1</version.junit>
-    <version.jackson>2.14.0</version.jackson>
 
     <plugin.version.surefire>3.0.0-M7</plugin.version.surefire>
     <plugin.version.javadoc>3.4.1</plugin.version.javadoc>
@@ -56,23 +56,19 @@
     <plugin.version.fmt>2.13</plugin.version.fmt>
     <plugin.version.license>4.1</plugin.version.license>
     <plugin.version.jib>3.3.1</plugin.version.jib>
+
     <assertj.version>3.23.1</assertj.version>
     <awaitility.version>4.2.0</awaitility.version>
     <log4j.version>2.19.0</log4j.version>
     <slf4j-api.version>2.0.4</slf4j-api.version>
-    <snakeyaml.version>1.33</snakeyaml.version>
-    <guava.version>31.1-jre</guava.version>
-    <protobuf-java.version>3.21.9</protobuf-java.version>
-    <jackson.version>2.14.0</jackson.version>
-    <scala-library.version>2.13.10</scala-library.version>
     <picocli.version>4.7.0</picocli.version>
-    <agrona.version>1.17.1</agrona.version>
-    <google-protos.version>2.10.0</google-protos.version>
-    <grpc.version>1.51.0</grpc.version>
+
   </properties>
 
   <dependencyManagement>
     <dependencies>
+
+      <!-- Zeebe modules     -->
       <dependency>
         <groupId>io.camunda</groupId>
         <artifactId>zeebe-bom</artifactId>
@@ -81,50 +77,13 @@
         <type>pom</type>
       </dependency>
 
+      <!-- Zeebe dependencies     -->
       <dependency>
         <groupId>io.camunda</groupId>
-        <artifactId>zeebe-workflow-engine</artifactId>
+        <artifactId>zeebe-parent</artifactId>
         <version>${zeebe.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>io.camunda</groupId>
-        <artifactId>zeebe-util</artifactId>
-        <version>${zeebe.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>io.camunda</groupId>
-        <artifactId>zeebe-logstreams</artifactId>
-        <version>${zeebe.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>io.camunda</groupId>
-        <artifactId>zeebe-test-util</artifactId>
-        <version>${zeebe.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>io.camunda</groupId>
-        <artifactId>zeebe-db</artifactId>
-        <version>${zeebe.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>io.netty</groupId>
-        <artifactId>netty-bom</artifactId>
-        <version>${netty.version}</version>
         <scope>import</scope>
         <type>pom</type>
-      </dependency>
-
-      <dependency>
-        <groupId>com.fasterxml.jackson</groupId>
-        <artifactId>jackson-bom</artifactId>
-        <version>${version.jackson}</version>
-        <type>pom</type>
-        <scope>import</scope>
       </dependency>
 
       <dependency>
@@ -135,14 +94,6 @@
         <scope>import</scope>
       </dependency>
 
-
-      <!-- only to avoid convergence -->
-      <dependency>
-        <groupId>junit</groupId>
-        <artifactId>junit</artifactId>
-        <version>4.13.2</version>
-      </dependency>
-
       <!-- Kotlin deps -->
 
       <dependency>
@@ -150,21 +101,25 @@
         <artifactId>kotlin-stdlib</artifactId>
         <version>${kotlin.version}</version>
       </dependency>
+
       <dependency>
         <groupId>org.jetbrains.kotlin</groupId>
         <artifactId>kotlin-stdlib-jdk8</artifactId>
         <version>${kotlin.version}</version>
       </dependency>
+
       <dependency>
         <groupId>org.jetbrains.kotlin</groupId>
         <artifactId>kotlin-stdlib-common</artifactId>
         <version>${kotlin.version}</version>
       </dependency>
+
       <dependency>
         <groupId>org.jetbrains.kotlin</groupId>
         <artifactId>kotlin-reflect</artifactId>
         <version>${kotlin.version}</version>
       </dependency>
+
       <dependency>
         <groupId>org.jetbrains.kotlin</groupId>
         <artifactId>kotlin-test</artifactId>
@@ -172,18 +127,10 @@
         <scope>test</scope>
       </dependency>
 
-
       <dependency>
         <groupId>org.assertj</groupId>
         <artifactId>assertj-core</artifactId>
         <version>${assertj.version}</version>
-      </dependency>
-
-      <!-- resolve version conflict (https://github.com/camunda-community-hub/eze/pull/155) -->
-      <dependency>
-        <groupId>net.java.dev.jna</groupId>
-        <artifactId>jna</artifactId>
-        <version>5.12.1</version>
       </dependency>
 
       <dependency>
@@ -210,102 +157,11 @@
         <version>${log4j.version}</version>
       </dependency>
 
-      <dependency>
-        <groupId>com.google.errorprone</groupId>
-        <artifactId>error_prone_annotations</artifactId>
-        <version>2.16</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.slf4j</groupId>
-        <artifactId>slf4j-api</artifactId>
-        <version>${slf4j-api.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.yaml</groupId>
-        <artifactId>snakeyaml</artifactId>
-        <version>${snakeyaml.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>com.google.guava</groupId>
-        <artifactId>guava</artifactId>
-        <version>${guava.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>com.google.protobuf</groupId>
-        <artifactId>protobuf-java</artifactId>
-        <version>${protobuf-java.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>com.google.api.grpc</groupId>
-        <artifactId>proto-google-common-protos</artifactId>
-        <version>${google-protos.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>io.grpc</groupId>
-        <artifactId>grpc-core</artifactId>
-        <version>${grpc.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>io.grpc</groupId>
-        <artifactId>grpc-api</artifactId>
-        <version>${grpc.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>io.grpc</groupId>
-        <artifactId>grpc-netty</artifactId>
-        <version>${grpc.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>com.fasterxml.jackson.core</groupId>
-        <artifactId>jackson-databind</artifactId>
-        <version>${jackson.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>com.fasterxml.jackson.core</groupId>
-        <artifactId>jackson-annotations</artifactId>
-        <version>${jackson.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.scala-lang</groupId>
-        <artifactId>scala-library</artifactId>
-        <version>${scala-library.version}</version>
-      </dependency>
-
       <!-- Agent dependencies -->
       <dependency>
         <groupId>info.picocli</groupId>
         <artifactId>picocli</artifactId>
         <version>${picocli.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.agrona</groupId>
-        <artifactId>agrona</artifactId>
-        <version>${agrona.version}</version>
-      </dependency>
-
-      <!-- additional dependencies because of different versions -->
-      <dependency>
-        <groupId>org.camunda.feel</groupId>
-        <artifactId>feel-engine</artifactId>
-        <version>1.15.2</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.apache.commons</groupId>
-        <artifactId>commons-lang3</artifactId>
-        <version>3.12.0</version>
       </dependency>
 
       <dependency>
@@ -336,7 +192,7 @@
         <version>3.1.0</version>
         <configuration>
           <rules>
-            <dependencyConvergence />
+            <dependencyConvergence/>
           </rules>
         </configuration>
         <executions>
