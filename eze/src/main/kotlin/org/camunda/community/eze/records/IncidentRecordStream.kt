@@ -5,14 +5,14 @@
  * Licensed under the Zeebe Community License 1.1. You may not use this file
  * except in compliance with the Zeebe Community License 1.1.
  */
-package org.camunda.community.eze
+package org.camunda.community.eze.records
 
 import io.camunda.zeebe.protocol.record.Record
 import io.camunda.zeebe.protocol.record.value.ErrorType
 import io.camunda.zeebe.protocol.record.value.IncidentRecordValue
 
 class IncidentRecordStream(private val records: Iterable<Record<IncidentRecordValue>>) :
-        Iterable<Record<IncidentRecordValue>> {
+    Iterable<Record<IncidentRecordValue>> {
 
     override fun iterator(): Iterator<Record<IncidentRecordValue>> {
         return records.iterator()

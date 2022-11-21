@@ -7,48 +7,27 @@
  */
 package org.camunda.community.eze
 
-import io.camunda.zeebe.db.ZeebeDb
-import io.camunda.zeebe.engine.processing.EngineProcessors
-import io.camunda.zeebe.engine.processing.streamprocessor.StreamProcessor
 import io.camunda.zeebe.engine.processing.streamprocessor.TypedEventRegistry
-import io.camunda.zeebe.engine.state.ZbColumnFamilies
-import io.camunda.zeebe.engine.state.appliers.EventAppliers
 import io.camunda.zeebe.exporter.api.Exporter
-import io.camunda.zeebe.logstreams.log.LogStream
 import io.camunda.zeebe.logstreams.log.LogStreamReader
-import io.camunda.zeebe.logstreams.log.LogStreamRecordWriter
-import io.camunda.zeebe.logstreams.storage.LogStorage
 import io.camunda.zeebe.protocol.impl.record.CopiedRecord
 import io.camunda.zeebe.protocol.impl.record.RecordMetadata
 import io.camunda.zeebe.protocol.record.Record
-import io.camunda.zeebe.util.FeatureFlags
-import io.camunda.zeebe.util.sched.Actor
-import io.camunda.zeebe.util.sched.ActorScheduler
-import io.camunda.zeebe.util.sched.ActorSchedulingService
-import io.camunda.zeebe.util.sched.clock.ActorClock
-import io.camunda.zeebe.util.sched.clock.ControlledActorClock
-import io.grpc.ServerBuilder
-import org.camunda.community.eze.db.EzeZeebeDbFactory
-import java.nio.file.Files
-import java.util.concurrent.CompletableFuture
+import io.camunda.zeebe.scheduler.ActorScheduler
+import io.camunda.zeebe.scheduler.clock.ActorClock
+import io.camunda.zeebe.scheduler.clock.ControlledActorClock
+import org.camunda.community.eze.engine.ExporterRunner
+import org.camunda.community.eze.engine.EzeLogStreamFactory
+import org.camunda.community.eze.engine.EzeStreamProcessorFactory
+import org.camunda.community.eze.engine.ZeebeEngineImpl
+import org.camunda.community.eze.grpc.EzeGatewayFactory
 
 typealias PartitionId = Int
-
-private const val LOGSTREAM_NAME = "EZE-LOG"
 
 object EngineFactory {
 
     private val partitionId: PartitionId = 1
     private val partitionCount = 1
-
-    private val streamWritersByPartition = mutableMapOf<PartitionId, LogStreamRecordWriter>()
-
-    private val subscriptionCommandSenderFactory = SubscriptionCommandSenderFactory(
-        writerLookUp = { partitionId ->
-            streamWritersByPartition[partitionId]
-                ?: throw RuntimeException("no stream writer found for partition '$partitionId'")
-        }
-    )
 
     fun create(exporters: Iterable<Exporter> = emptyList()): ZeebeEngine {
 
@@ -56,37 +35,25 @@ object EngineFactory {
 
         val scheduler = createActorScheduler(clock)
 
-        val logStorage = createLogStorage()
-        val logStream = createLogStream(
+        val logStream = EzeLogStreamFactory.createLogStream(
             partitionId = partitionId,
-            logStorage = logStorage,
             scheduler = scheduler
         )
 
-        val streamWriter = logStream.newLogStreamRecordWriter().join()
-        streamWritersByPartition[partitionId] = streamWriter
-
-        val gateway = GrpcToLogStreamGateway(logStream.newLogStreamRecordWriter().join())
-        val grpcServer = ServerBuilder.forPort(ZeebeEngineImpl.PORT).addService(gateway).build()
-
-        val zeebeDb = createDatabase()
-
-        val grpcResponseWriter = GrpcResponseWriter(
-            responseCallback = gateway::responseCallback,
-            errorCallback = gateway::errorCallback,
-            expectedResponse = gateway::getExpectedResponseType
+        val gateway = EzeGatewayFactory.createGateway(
+            port = ZeebeEngineImpl.PORT,
+            streamWriter = logStream.createWriter()
         )
 
-        val streamProcessor = createStreamProcessor(
-            partitionCount = partitionCount,
+        val streamProcessor = EzeStreamProcessorFactory.createStreamProcessor(
             logStream = logStream,
-            database = zeebeDb,
+            responseWriter = gateway.getResponseWriter(),
             scheduler = scheduler,
-            grpcResponseWriter
+            partitionCount = partitionCount
         )
 
-        val exporterReader = logStream.newLogStreamReader().join()
-        val recordStreamReader = logStream.newLogStreamReader().join()
+        val exporterReader = logStream.createReader()
+        val recordStreamReader = logStream.createReader()
 
         val exporterRunner = ExporterRunner(
             exporters = exporters,
@@ -96,90 +63,20 @@ object EngineFactory {
 
         return ZeebeEngineImpl(
             startCallback = {
-                grpcServer.start()
-                streamProcessor.openAsync(false).join()
+                gateway.start()
+                streamProcessor.start()
                 exporterRunner.open()
             },
             stopCallback = {
-                grpcServer.shutdownNow()
-                grpcServer.awaitTermination()
-                gateway.close()
+                gateway.stop()
                 exporterRunner.close()
-                streamProcessor.close()
-                zeebeDb.close()
+                streamProcessor.stop()
                 logStream.close()
                 scheduler.stop()
             },
             recordStream = { createRecordStream(recordStreamReader) },
             clock = clock
         )
-    }
-
-    private fun createStreamProcessor(
-        partitionCount: Int,
-        logStream: LogStream,
-        database: ZeebeDb<ZbColumnFamilies>,
-        scheduler: ActorSchedulingService,
-        grpcResponseWriter: GrpcResponseWriter
-    ): StreamProcessor {
-        return StreamProcessor.builder()
-            .logStream(logStream)
-            .zeebeDb(database)
-            .eventApplierFactory { EventAppliers(it) }
-            .commandResponseWriter(grpcResponseWriter)
-            .nodeId(0)
-            .streamProcessorFactory { context ->
-                EngineProcessors.createEngineProcessors(
-                    context,
-                    partitionCount,
-                    subscriptionCommandSenderFactory.ofPartition(partitionId = partitionId),
-                    SinglePartitionDeploymentDistributor(),
-                    SinglePartitionDeploymentResponder(),
-                    { jobType ->
-                        // new job is available
-                    },
-                    FeatureFlags.createDefault()
-                )
-            }
-            .actorSchedulingService(scheduler)
-            .build()
-    }
-
-    private fun createDatabase(): ZeebeDb<ZbColumnFamilies> {
-        val zeebeDbFactory = EzeZeebeDbFactory.getDefaultFactory<ZbColumnFamilies>()
-        return zeebeDbFactory.createDb(Files.createTempDirectory("zeebeDb").toFile())
-    }
-
-    private fun createLogStream(
-        partitionId: Int,
-        logStorage: LogStorage,
-        scheduler: ActorSchedulingService
-    ): LogStream {
-        val builder = LogStream.builder()
-            .withPartitionId(partitionId)
-            .withLogStorage(logStorage)
-            .withLogName(LOGSTREAM_NAME)
-            .withActorSchedulingService(scheduler)
-
-        val theFuture = CompletableFuture<LogStream>()
-
-        scheduler.submitActor(Actor.wrap {
-            builder
-                .buildAsync()
-                .onComplete { logStream, failure ->
-                    if (failure != null) {
-                        theFuture.completeExceptionally(failure)
-                    } else {
-                        theFuture.complete(logStream)
-                    }
-                }
-        })
-
-        return theFuture.join()
-    }
-
-    private fun createLogStorage(): LogStorage {
-        return InMemoryLogStorage()
     }
 
     private fun createActorScheduler(clock: ActorClock): ActorScheduler {
