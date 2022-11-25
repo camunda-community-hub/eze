@@ -116,6 +116,8 @@ class GrpcResponseWriter(
                 else -> TODO("not support job command '$intent'")
             }
 
+            ValueType.PROCESS_INSTANCE_MODIFICATION -> createProcessInstanceModificationResponse()
+
             else -> TODO("not supported command '$valueType'")
         }
 
@@ -304,6 +306,11 @@ class GrpcResponseWriter(
 
     private fun createJobUpdateRetriesResponse(): GatewayOuterClass.UpdateJobRetriesResponse {
         return GatewayOuterClass.UpdateJobRetriesResponse.newBuilder()
+            .build()
+    }
+
+    private fun createProcessInstanceModificationResponse(): GatewayOuterClass.ModifyProcessInstanceResponse {
+        return GatewayOuterClass.ModifyProcessInstanceResponse.newBuilder()
             .build()
     }
 
