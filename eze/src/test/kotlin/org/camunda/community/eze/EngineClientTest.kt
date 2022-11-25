@@ -130,7 +130,7 @@ class EngineClientTest {
         // given
         zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
 
-        zeebeClient.newDeployCommand()
+        zeebeClient.newDeployResourceCommand()
             .addProcessModel(Bpmn.createExecutableProcess("process")
                 .startEvent()
                 .intermediateCatchEvent()
@@ -226,7 +226,7 @@ class EngineClientTest {
         // given
         zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
         val deployment = zeebeClient
-            .newDeployCommand()
+            .newDeployResourceCommand()
             .addProcessModel(
                 Bpmn.createExecutableProcess("simpleProcess")
                     .startEvent()
@@ -272,7 +272,7 @@ class EngineClientTest {
         // given
         zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
         val deployment = zeebeClient
-            .newDeployCommand()
+            .newDeployResourceCommand()
             .addProcessModel(
                 Bpmn.createExecutableProcess("simpleProcess")
                     .startEvent()
@@ -302,7 +302,7 @@ class EngineClientTest {
         // given
         zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
         val deployment = zeebeClient
-            .newDeployCommand()
+            .newDeployResourceCommand()
             .addProcessModel(
                 Bpmn.createExecutableProcess("simpleProcess")
                     .startEvent()
@@ -350,7 +350,7 @@ class EngineClientTest {
         // given
         zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
         zeebeClient
-            .newDeployCommand()
+            .newDeployResourceCommand()
             .addProcessModel(
                 Bpmn.createExecutableProcess("simpleProcess")
                     .startEvent()
@@ -390,7 +390,7 @@ class EngineClientTest {
         // given
         zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
         zeebeClient
-            .newDeployCommand()
+            .newDeployResourceCommand()
             .addProcessModel(
                 Bpmn.createExecutableProcess("simpleProcess")
                     .startEvent()
@@ -427,7 +427,7 @@ class EngineClientTest {
         zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
 
         val deployment = zeebeClient
-            .newDeployCommand()
+            .newDeployResourceCommand()
             .addProcessModel(
                 Bpmn.createExecutableProcess("simpleProcess")
                     .startEvent()
@@ -460,7 +460,7 @@ class EngineClientTest {
         // given
         zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
         val deployment = zeebeClient
-            .newDeployCommand()
+            .newDeployResourceCommand()
             .addProcessModel(
                 Bpmn.createExecutableProcess("simpleProcess")
                     .startEvent()
@@ -509,7 +509,7 @@ class EngineClientTest {
         zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
 
         zeebeClient
-            .newDeployCommand()
+            .newDeployResourceCommand()
             .addProcessModel(
                 Bpmn.createExecutableProcess("process")
                     .startEvent()
@@ -547,7 +547,7 @@ class EngineClientTest {
         // given
         zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
         zeebeClient
-            .newDeployCommand()
+            .newDeployResourceCommand()
             .addProcessModel(
                 Bpmn.createExecutableProcess("simpleProcess")
                     .startEvent()
@@ -606,7 +606,7 @@ class EngineClientTest {
 
         zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
         zeebeClient
-            .newDeployCommand()
+            .newDeployResourceCommand()
             .addProcessModel(
                 Bpmn.createExecutableProcess("simpleProcess")
                     .startEvent()
@@ -662,7 +662,7 @@ class EngineClientTest {
         // given
         zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
         zeebeClient
-            .newDeployCommand()
+            .newDeployResourceCommand()
             .addProcessModel(
                 Bpmn.createExecutableProcess("simpleProcess")
                     .startEvent()
@@ -722,7 +722,7 @@ class EngineClientTest {
         // given
         zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
         zeebeClient
-            .newDeployCommand()
+            .newDeployResourceCommand()
             .addProcessModel(
                 Bpmn.createExecutableProcess("simpleProcess")
                     .startEvent()
@@ -778,7 +778,7 @@ class EngineClientTest {
         // given
         zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
         val deployment = zeebeClient
-            .newDeployCommand()
+            .newDeployResourceCommand()
             .addProcessModel(
                 Bpmn.createExecutableProcess("simpleProcess")
                     .startEvent()
@@ -868,7 +868,7 @@ class EngineClientTest {
         zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
 
         zeebeClient
-            .newDeployCommand()
+            .newDeployResourceCommand()
             .addProcessModel(
                 Bpmn.createExecutableProcess("simpleProcess")
                     .startEvent()
@@ -919,7 +919,7 @@ class EngineClientTest {
         zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
 
         zeebeClient
-            .newDeployCommand()
+            .newDeployResourceCommand()
             .addProcessModel(
                 Bpmn.createExecutableProcess("simpleProcess")
                     .startEvent()
@@ -957,7 +957,7 @@ class EngineClientTest {
         zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
 
         zeebeClient
-            .newDeployCommand()
+            .newDeployResourceCommand()
             .addProcessModel(
                 Bpmn.createExecutableProcess("process")
                     .startEvent()
@@ -1013,7 +1013,7 @@ class EngineClientTest {
             .open()
 
         zeebeClient
-            .newDeployCommand()
+            .newDeployResourceCommand()
             .addProcessModel(
                 Bpmn.createExecutableProcess("simpleProcess")
                     .startEvent()
