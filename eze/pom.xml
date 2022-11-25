@@ -5,7 +5,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <artifactId>eze</artifactId>
-  <version>1.0.3-SNAPSHOT</version>
+  <version>1.1.0</version>
   <packaging>jar</packaging>
 
   <name>EZE - Embedded Zeebe Engine</name>
@@ -14,7 +14,7 @@
     <groupId>org.camunda.community</groupId>
     <artifactId>eze-root</artifactId>
     <relativePath>../pom.xml</relativePath>
-    <version>1.0.3-SNAPSHOT</version>
+    <version>1.1.0</version>
   </parent>
 
   <dependencies>
