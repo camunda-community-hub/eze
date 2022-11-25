@@ -19,13 +19,18 @@ import io.camunda.zeebe.protocol.record.intent.JobIntent
 import io.camunda.zeebe.protocol.record.intent.ProcessInstanceIntent
 import io.camunda.zeebe.protocol.record.intent.TimerIntent
 import io.camunda.zeebe.protocol.record.value.BpmnElementType
+import io.camunda.zeebe.protocol.record.value.ProcessInstanceRecordValue
+import io.camunda.zeebe.protocol.record.value.VariableRecordValue
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
+import org.assertj.core.groups.Tuple
 import org.awaitility.kotlin.await
 import org.camunda.community.eze.RecordStream.print
+import org.camunda.community.eze.RecordStream.withElementId
 import org.camunda.community.eze.RecordStream.withElementType
 import org.camunda.community.eze.RecordStream.withIntent
 import org.camunda.community.eze.RecordStream.withKey
+import org.camunda.community.eze.RecordStream.withProcessInstanceKey
 import org.camunda.community.eze.RecordStream.withRecordType
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
@@ -125,7 +130,7 @@ class EngineClientTest {
         // given
         zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
 
-        zeebeClient.newDeployCommand()
+        zeebeClient.newDeployResourceCommand()
             .addProcessModel(Bpmn.createExecutableProcess("process")
                 .startEvent()
                 .intermediateCatchEvent()
@@ -221,7 +226,7 @@ class EngineClientTest {
         // given
         zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
         val deployment = zeebeClient
-            .newDeployCommand()
+            .newDeployResourceCommand()
             .addProcessModel(
                 Bpmn.createExecutableProcess("simpleProcess")
                     .startEvent()
@@ -267,7 +272,7 @@ class EngineClientTest {
         // given
         zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
         val deployment = zeebeClient
-            .newDeployCommand()
+            .newDeployResourceCommand()
             .addProcessModel(
                 Bpmn.createExecutableProcess("simpleProcess")
                     .startEvent()
@@ -293,11 +298,59 @@ class EngineClientTest {
     }
 
     @Test
+    fun `should create process instance with start instructions`() {
+        // given
+        zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
+        val deployment = zeebeClient
+            .newDeployResourceCommand()
+            .addProcessModel(
+                Bpmn.createExecutableProcess("simpleProcess")
+                    .startEvent()
+                    .userTask("A")
+                    .userTask("B")
+                    .userTask("C")
+                    .endEvent()
+                    .done(),
+                "simpleProcess.bpmn"
+            )
+            .send()
+            .join()
+
+        // when
+        val processInstance = zeebeClient.newCreateInstanceCommand().bpmnProcessId("simpleProcess")
+            .latestVersion()
+            .startBeforeElement("B")
+            .startBeforeElement("C")
+            .send()
+            .join()
+
+        // then
+        assertThat(processInstance.processInstanceKey).isPositive
+        assertThat(processInstance.bpmnProcessId).isEqualTo("simpleProcess")
+        assertThat(processInstance.processDefinitionKey).isEqualTo(deployment.processes[0].processDefinitionKey)
+        assertThat(processInstance.version).isEqualTo(1)
+
+        await.untilAsserted {
+            val activatedUserTasks = zeebeEngine
+                .processInstanceRecords()
+                .withIntent(ProcessInstanceIntent.ELEMENT_ACTIVATED)
+                .withElementType(BpmnElementType.USER_TASK)
+                .take(2)
+
+
+            assertThat(activatedUserTasks)
+                .extracting<ProcessInstanceRecordValue> { it.value }
+                .extracting<String> { it.elementId }
+                .containsExactly("B", "C")
+        }
+    }
+
+    @Test
     fun `should cancel process instance`() {
         // given
         zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
         zeebeClient
-            .newDeployCommand()
+            .newDeployResourceCommand()
             .addProcessModel(
                 Bpmn.createExecutableProcess("simpleProcess")
                     .startEvent()
@@ -337,7 +390,7 @@ class EngineClientTest {
         // given
         zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
         zeebeClient
-            .newDeployCommand()
+            .newDeployResourceCommand()
             .addProcessModel(
                 Bpmn.createExecutableProcess("simpleProcess")
                     .startEvent()
@@ -374,7 +427,7 @@ class EngineClientTest {
         zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
 
         val deployment = zeebeClient
-            .newDeployCommand()
+            .newDeployResourceCommand()
             .addProcessModel(
                 Bpmn.createExecutableProcess("simpleProcess")
                     .startEvent()
@@ -407,7 +460,7 @@ class EngineClientTest {
         // given
         zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
         val deployment = zeebeClient
-            .newDeployCommand()
+            .newDeployResourceCommand()
             .addProcessModel(
                 Bpmn.createExecutableProcess("simpleProcess")
                     .startEvent()
@@ -456,7 +509,7 @@ class EngineClientTest {
         zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
 
         zeebeClient
-            .newDeployCommand()
+            .newDeployResourceCommand()
             .addProcessModel(
                 Bpmn.createExecutableProcess("process")
                     .startEvent()
@@ -494,7 +547,7 @@ class EngineClientTest {
         // given
         zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
         zeebeClient
-            .newDeployCommand()
+            .newDeployResourceCommand()
             .addProcessModel(
                 Bpmn.createExecutableProcess("simpleProcess")
                     .startEvent()
@@ -547,11 +600,69 @@ class EngineClientTest {
     }
 
     @Test
+    fun `should fail job with backoff`() {
+        // given
+        val backoffDuration = Duration.ofMinutes(5)
+
+        zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
+        zeebeClient
+            .newDeployResourceCommand()
+            .addProcessModel(
+                Bpmn.createExecutableProcess("simpleProcess")
+                    .startEvent()
+                    .serviceTask("task") { it.zeebeJobType("jobType") }
+                    .endEvent()
+                    .done(),
+                "simpleProcess.bpmn")
+            .send()
+            .join()
+
+        val processInstanceKey =
+            zeebeClient.newCreateInstanceCommand().bpmnProcessId("simpleProcess")
+                .latestVersion()
+                .send()
+                .join()
+                .processInstanceKey
+
+        var jobKey: Long = -1
+        await.untilAsserted {
+            val createdJob = zeebeEngine
+                .jobRecords()
+                .withProcessInstanceKey(processInstanceKey)
+                .withIntent(JobIntent.CREATED)
+                .firstOrNull()
+
+            assertThat(createdJob).isNotNull
+            jobKey = createdJob!!.key
+        }
+
+        // when
+        zeebeClient.newFailCommand(jobKey)
+            .retries(2)
+            .errorMessage("let's try again")
+            .retryBackoff(backoffDuration)
+            .send()
+            .join()
+
+        // then
+        await.untilAsserted {
+            val failedJob = zeebeEngine
+                .jobRecords()
+                .withKey(jobKey)
+                .withIntent(JobIntent.FAILED)
+                .firstOrNull()
+
+            assertThat(failedJob).isNotNull
+            assertThat(failedJob!!.value.retryBackoff).isEqualTo(backoffDuration.toMillis())
+        }
+    }
+
+    @Test
     fun `should throw error on job`() {
         // given
         zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
         zeebeClient
-            .newDeployCommand()
+            .newDeployResourceCommand()
             .addProcessModel(
                 Bpmn.createExecutableProcess("simpleProcess")
                     .startEvent()
@@ -611,7 +722,7 @@ class EngineClientTest {
         // given
         zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
         zeebeClient
-            .newDeployCommand()
+            .newDeployResourceCommand()
             .addProcessModel(
                 Bpmn.createExecutableProcess("simpleProcess")
                     .startEvent()
@@ -663,12 +774,101 @@ class EngineClientTest {
     }
 
     @Test
+    fun `should modify process instance`() {
+        // given
+        zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
+        val deployment = zeebeClient
+            .newDeployResourceCommand()
+            .addProcessModel(
+                Bpmn.createExecutableProcess("simpleProcess")
+                    .startEvent()
+                    .userTask("A")
+                    .userTask("B")
+                    .userTask("C")
+                    .endEvent()
+                    .done(),
+                "simpleProcess.bpmn"
+            )
+            .send()
+            .join()
+
+        val processInstanceKey =
+            zeebeClient.newCreateInstanceCommand().bpmnProcessId("simpleProcess")
+                .latestVersion()
+                .send()
+                .join()
+                .processInstanceKey
+
+        var instanceKeyOfElementA: Long = -1
+        await.untilAsserted {
+            val activatedTask = zeebeEngine
+                .processInstanceRecords()
+                .withProcessInstanceKey(processInstanceKey)
+                .withIntent(ProcessInstanceIntent.ELEMENT_ACTIVATED)
+                .withElementId("A")
+                .firstOrNull()
+
+            assertThat(activatedTask).isNotNull
+            instanceKeyOfElementA = activatedTask!!.key
+        }
+
+        // when
+        zeebeClient.newModifyProcessInstanceCommand(processInstanceKey)
+            .terminateElement(instanceKeyOfElementA)
+            .and()
+            .activateElement("B")
+            .withVariables(mapOf("global" to 1))
+            .withVariables(mapOf("localB" to 2), "B")
+            .and()
+            .activateElement("C")
+            .withVariables(mapOf("localC" to 3), "C")
+            .send()
+            .join()
+
+        // then
+        await.untilAsserted {
+            val terminatedUserTask = zeebeEngine
+                .processInstanceRecords()
+                .withIntent(ProcessInstanceIntent.ELEMENT_ACTIVATED)
+                .withElementType(BpmnElementType.USER_TASK)
+                .firstOrNull()
+
+            assertThat(terminatedUserTask).isNotNull
+            assertThat(terminatedUserTask!!.value.elementId).isEqualTo("A")
+
+            val activatedUserTasks = zeebeEngine
+                .processInstanceRecords()
+                .withIntent(ProcessInstanceIntent.ELEMENT_ACTIVATED)
+                .withElementType(BpmnElementType.USER_TASK)
+                .take(3)
+
+            assertThat(activatedUserTasks)
+                .extracting<ProcessInstanceRecordValue> { it.value }
+                .extracting<String> { it.elementId }
+                .containsExactly("A", "B", "C")
+
+            val variables = zeebeEngine.variableRecords()
+                .withProcessInstanceKey(processInstanceKey)
+                .take(3)
+
+            assertThat(variables)
+                .extracting<VariableRecordValue> { it.value }
+                .extracting({ it.scopeKey }, { it.name }, { it.value })
+                .containsExactly(
+                    Tuple.tuple(processInstanceKey, "global", "1"),
+                    Tuple.tuple(activatedUserTasks[1].key, "localB", "2"),
+                    Tuple.tuple(activatedUserTasks[2].key, "localC", "3")
+                )
+        }
+    }
+
+    @Test
     fun `should read process instance records`() {
         // given
         zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
 
         zeebeClient
-            .newDeployCommand()
+            .newDeployResourceCommand()
             .addProcessModel(
                 Bpmn.createExecutableProcess("simpleProcess")
                     .startEvent()
@@ -719,7 +919,7 @@ class EngineClientTest {
         zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
 
         zeebeClient
-            .newDeployCommand()
+            .newDeployResourceCommand()
             .addProcessModel(
                 Bpmn.createExecutableProcess("simpleProcess")
                     .startEvent()
@@ -757,7 +957,7 @@ class EngineClientTest {
         zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
 
         zeebeClient
-            .newDeployCommand()
+            .newDeployResourceCommand()
             .addProcessModel(
                 Bpmn.createExecutableProcess("process")
                     .startEvent()
@@ -813,7 +1013,7 @@ class EngineClientTest {
             .open()
 
         zeebeClient
-            .newDeployCommand()
+            .newDeployResourceCommand()
             .addProcessModel(
                 Bpmn.createExecutableProcess("simpleProcess")
                     .startEvent()

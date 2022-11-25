@@ -19,8 +19,7 @@ import io.camunda.zeebe.protocol.impl.record.value.incident.IncidentRecord
 import io.camunda.zeebe.protocol.impl.record.value.job.JobBatchRecord
 import io.camunda.zeebe.protocol.impl.record.value.job.JobRecord
 import io.camunda.zeebe.protocol.impl.record.value.message.MessageRecord
-import io.camunda.zeebe.protocol.impl.record.value.processinstance.ProcessInstanceCreationRecord
-import io.camunda.zeebe.protocol.impl.record.value.processinstance.ProcessInstanceRecord
+import io.camunda.zeebe.protocol.impl.record.value.processinstance.*
 import io.camunda.zeebe.protocol.impl.record.value.variable.VariableDocumentRecord
 import io.camunda.zeebe.protocol.record.RecordType
 import io.camunda.zeebe.protocol.record.ValueType
@@ -31,6 +30,7 @@ import io.camunda.zeebe.util.buffer.BufferUtil.wrapString
 import io.camunda.zeebe.util.buffer.BufferWriter
 import io.grpc.protobuf.StatusProto
 import io.grpc.stub.StreamObserver
+import org.agrona.DirectBuffer
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
@@ -90,10 +90,7 @@ class GrpcToLogStreamGateway(
             messageRecord.messageId = messageRequest.messageId
             messageRecord.name = messageRequest.name
             messageRecord.timeToLive = messageRequest.timeToLive
-            messageRequest.variables.takeIf { it.isNotEmpty() }?.let {
-                val variables = BufferUtil.wrapArray(MsgPackConverter.convertToMsgPack(it))
-                messageRecord.setVariables(variables)
-            }
+            setVariablesAsMessagePack(messageRequest.variables, messageRecord::setVariables)
 
             writeCommandWithoutKey(recordMetadata, messageRecord)
         }
@@ -193,11 +190,17 @@ class GrpcToLogStreamGateway(
         processInstanceCreationRecord.bpmnProcessId = creationRequest.bpmnProcessId
         processInstanceCreationRecord.version = creationRequest.version
         processInstanceCreationRecord.processDefinitionKey = creationRequest.processDefinitionKey
+        setVariablesAsMessagePack(
+            creationRequest.variables,
+            processInstanceCreationRecord::setVariables
+        )
 
-        creationRequest.variables.takeIf { it.isNotEmpty() }?.let {
-            val variables = BufferUtil.wrapArray(MsgPackConverter.convertToMsgPack(it))
-            processInstanceCreationRecord.setVariables(variables)
+        creationRequest.startInstructionsList.forEach {
+            val instruction = ProcessInstanceCreationStartInstruction()
+            instruction.elementId = it.elementId
+            processInstanceCreationRecord.addStartInstruction(instruction)
         }
+
         return processInstanceCreationRecord
     }
 
@@ -234,11 +237,7 @@ class GrpcToLogStreamGateway(
                 .intent(VariableDocumentIntent.UPDATE)
 
             val variableDocumentRecord = VariableDocumentRecord()
-
-            request.variables.takeIf { it.isNotEmpty() }?.let {
-                val variables = BufferUtil.wrapArray(MsgPackConverter.convertToMsgPack(it))
-                variableDocumentRecord.setVariables(variables)
-            }
+            setVariablesAsMessagePack(request.variables, variableDocumentRecord::setVariables)
 
             variableDocumentRecord.scopeKey = request.elementInstanceKey
             variableDocumentRecord.updateSemantics =
@@ -302,11 +301,7 @@ class GrpcToLogStreamGateway(
                 .intent(JobIntent.COMPLETE)
 
             val jobRecord = JobRecord()
-
-            request.variables.takeIf { it.isNotEmpty() }?.let {
-                val variables = BufferUtil.wrapArray(MsgPackConverter.convertToMsgPack(it))
-                jobRecord.setVariables(variables)
-            }
+            setVariablesAsMessagePack(request.variables, jobRecord::setVariables)
 
             writeCommandWithKey(request.jobKey, recordMetadata, jobRecord)
         }
@@ -328,6 +323,7 @@ class GrpcToLogStreamGateway(
 
             jobRecord.retries = request.retries
             jobRecord.errorMessage = request.errorMessage
+            jobRecord.retryBackoff = request.retryBackOff
 
             writeCommandWithKey(request.jobKey, recordMetadata, jobRecord)
         }
@@ -344,7 +340,6 @@ class GrpcToLogStreamGateway(
                 .requestId(requestId)
                 .valueType(ValueType.JOB)
                 .intent(JobIntent.THROW_ERROR)
-
 
             val jobRecord = JobRecord()
 
@@ -371,6 +366,48 @@ class GrpcToLogStreamGateway(
             jobRecord.retries = request.retries
 
             writeCommandWithKey(request.jobKey, recordMetadata, jobRecord)
+        }
+    }
+
+    override fun modifyProcessInstance(
+        request: GatewayOuterClass.ModifyProcessInstanceRequest,
+        responseObserver: StreamObserver<GatewayOuterClass.ModifyProcessInstanceResponse>
+    ) {
+        executor.submit {
+            val requestId = registerNewRequest(responseObserver)
+
+            prepareRecordMetadata()
+                .requestId(requestId)
+                .valueType(ValueType.PROCESS_INSTANCE_MODIFICATION)
+                .intent(ProcessInstanceModificationIntent.MODIFY)
+
+            val modificationRecord = ProcessInstanceModificationRecord()
+            modificationRecord.processInstanceKey = request.processInstanceKey
+
+            request.activateInstructionsList.forEach {
+                val instruction = ProcessInstanceModificationActivateInstruction()
+                instruction.elementId = it.elementId
+                instruction.ancestorScopeKey = it.ancestorElementInstanceKey
+
+                it.variableInstructionsList.forEach {
+                    val variableInstruction = ProcessInstanceModificationVariableInstruction()
+                    variableInstruction.elementId = it.scopeId
+                    setVariablesAsMessagePack(it.variables, variableInstruction::setVariables)
+
+                    instruction.addVariableInstruction(variableInstruction)
+                }
+
+                modificationRecord.addActivateInstruction(instruction)
+            }
+
+            request.terminateInstructionsList.forEach {
+                val instruction = ProcessInstanceModificationTerminateInstruction()
+                instruction.elementInstanceKey = it.elementInstanceKey
+
+                modificationRecord.addTerminateInstruction(instruction)
+            }
+
+            writeCommandWithKey(request.processInstanceKey, recordMetadata, modificationRecord)
         }
     }
 
@@ -410,6 +447,13 @@ class GrpcToLogStreamGateway(
         return recordMetadata.reset()
             .recordType(RecordType.COMMAND)
             .requestStreamId(1) // partition id
+    }
+
+    private fun setVariablesAsMessagePack(variablesJson: String, setter: (DirectBuffer) -> Unit) {
+        variablesJson.takeIf { it.isNotEmpty() }
+            ?.let { MsgPackConverter.convertToMsgPack(it) }
+            ?.let { BufferUtil.wrapArray(it) }
+            ?.let(setter)
     }
 
     private inline fun <reified T : GeneratedMessageV3> registerNewRequest(

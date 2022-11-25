@@ -12,7 +12,6 @@ import io.camunda.zeebe.protocol.record.RecordType
 import io.camunda.zeebe.protocol.record.RecordValue
 import io.camunda.zeebe.protocol.record.intent.Intent
 import io.camunda.zeebe.protocol.record.value.BpmnElementType
-import io.camunda.zeebe.protocol.record.value.JobRecordValue
 import io.camunda.zeebe.protocol.record.value.ProcessInstanceRecordValue
 import io.camunda.zeebe.test.util.record.CompactRecordLogger
 
@@ -64,5 +63,9 @@ object RecordStream {
 
     fun Iterable<Record<ProcessInstanceRecordValue>>.withProcessInstanceKey(processInstanceKey: Long): Iterable<Record<ProcessInstanceRecordValue>> {
         return filter { it.value.processInstanceKey == processInstanceKey }
+    }
+
+    fun Iterable<Record<ProcessInstanceRecordValue>>.withElementId(elementId: String): Iterable<Record<ProcessInstanceRecordValue>> {
+        return filter { it.value.elementId == elementId }
     }
 }
