@@ -27,12 +27,15 @@ final class BufferedTaskResultBuilder implements TaskResultBuilder {
     this.mutableRecordBatch = new RecordBatch(predicate);
   }
 
-  public boolean appendCommandRecord(final long key, final Intent intent, final UnifiedRecordValue value) {
+  public boolean appendCommandRecord(
+      final long key, final Intent intent, final UnifiedRecordValue value) {
     ValueType valueType = (ValueType) TypedEventRegistry.TYPE_REGISTRY.get(value.getClass());
     if (valueType == null) {
       throw new IllegalStateException("Missing value type mapping for record: " + value.getClass());
     } else {
-      Either<RuntimeException, Void> either = this.mutableRecordBatch.appendRecord(key, -1, RecordType.COMMAND, intent, RejectionType.NULL_VAL, "", valueType, value);
+      Either<RuntimeException, Void> either =
+          this.mutableRecordBatch.appendRecord(
+              key, -1, RecordType.COMMAND, intent, RejectionType.NULL_VAL, "", valueType, value);
       return either.isRight();
     }
   }

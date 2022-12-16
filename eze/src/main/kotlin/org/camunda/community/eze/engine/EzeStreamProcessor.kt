@@ -25,6 +25,8 @@ import org.camunda.community.eze.records.RecordWrapper
 import org.camunda.community.eze.records.RecordsList
 import org.slf4j.LoggerFactory
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 
 class EzeStreamProcessor(
     private val records: RecordsList,
@@ -37,8 +39,8 @@ class EzeStreamProcessor(
     private val startCallback: Runnable,
     private val stopCallback: Runnable
 ) {
-    private val logger = LoggerFactory.getLogger("EZE")
-    private var lastPosition = 0;
+    private val logger = LoggerFactory.getLogger(EzeStreamProcessor::class.java)
+    private var lastPosition = AtomicInteger(0);
     private val executor = Executors.newSingleThreadExecutor()
     private val transactionContext = zeebeDb.createContext()
 
@@ -64,18 +66,20 @@ class EzeStreamProcessor(
     }
 
     private fun process() {
-//        var currentPosition = lastPosition
-        while (lastPosition < records.size) {
-            val typedRecord = records[lastPosition]
+        while (lastPosition.get() < records.size) {
+            logger.info("Process pos: {}, records {}", lastPosition.get(), records.size)
+            val typedRecord = records[lastPosition.getAndIncrement()]
+            logger.info("Process record: {}", typedRecord)
 
-            if (typedRecord.recordType == RecordType.COMMAND &&
-                engine.accepts(typedRecord.valueType)
-            ) {
                 try {
-                    val resultBuilder = BufferedProcessingResultBuilder({ _, _ -> true })
-                    transactionContext.runInTransaction {
-                        val processingResult = engine.process(typedRecord, resultBuilder)
-                        processResult(typedRecord, processingResult)
+                    if (typedRecord.recordType == RecordType.COMMAND &&
+                        engine.accepts(typedRecord.valueType)
+                    ) {
+                        val resultBuilder = BufferedProcessingResultBuilder({ _, _ -> true })
+                        transactionContext.runInTransaction {
+                            val processingResult = engine.process(typedRecord, resultBuilder)
+                            processResult(typedRecord, processingResult)
+                        }
                     }
                 } catch (e: Exception) {
                     try {
@@ -89,8 +93,7 @@ class EzeStreamProcessor(
                         throw e
                     }
                 }
-            }
-            lastPosition++
+//            lastPosition.incrementAndGet();
         }
 //            currentPosition++;
 //        }

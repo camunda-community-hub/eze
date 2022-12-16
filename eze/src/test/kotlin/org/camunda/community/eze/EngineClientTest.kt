@@ -155,6 +155,7 @@ class EngineClientTest {
             .messageName("a")
             .correlationKey("key-1")
             .variables(mapOf("message" to "correlated"))
+            .requestTimeout(Duration.ofMinutes(1))
             .send()
             .join()
 
