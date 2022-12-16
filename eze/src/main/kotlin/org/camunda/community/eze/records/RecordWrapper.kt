@@ -21,8 +21,10 @@ class RecordWrapper(
     private val recordMetadata: RecordMetadata,
     private val key : Long
 ) : TypedRecord<UnifiedRecordValue> {
+
+    private val creationTime = System.currentTimeMillis()
     override fun getPosition(): Long {
-        TODO("Not yet implemented")
+        return -1
     }
 
     companion object {
@@ -40,8 +42,7 @@ class RecordWrapper(
     }
 
     override fun getTimestamp(): Long {
-
-        TODO("Not yet implemented")
+        return creationTime
     }
 
     override fun getIntent(): Intent {

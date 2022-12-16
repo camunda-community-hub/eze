@@ -154,6 +154,7 @@ class EngineClientTest {
             .newPublishMessageCommand()
             .messageName("a")
             .correlationKey("key-1")
+            .timeToLive(Duration.ofMinutes(1))
             .variables(mapOf("message" to "correlated"))
             .requestTimeout(Duration.ofMinutes(1))
             .send()
