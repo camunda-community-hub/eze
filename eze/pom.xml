@@ -27,10 +27,6 @@
           <groupId>io.camunda</groupId>
           <artifactId>zeebe-atomix-cluster</artifactId>
         </exclusion>
-        <exclusion>
-          <groupId>io.camunda</groupId>
-          <artifactId>zeebe-stream-platform</artifactId>
-        </exclusion>
         <!-- No Spring        -->
         <exclusion>
           <groupId>org.springframework.boot</groupId>
