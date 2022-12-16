@@ -7,11 +7,13 @@
  */
 package org.camunda.community.eze
 
+import io.camunda.zeebe.engine.api.TypedRecord
 import io.camunda.zeebe.engine.processing.streamprocessor.TypedEventRegistry
 import io.camunda.zeebe.exporter.api.Exporter
 import io.camunda.zeebe.logstreams.log.LogStreamReader
 import io.camunda.zeebe.protocol.impl.record.CopiedRecord
 import io.camunda.zeebe.protocol.impl.record.RecordMetadata
+import io.camunda.zeebe.protocol.impl.record.UnifiedRecordValue
 import io.camunda.zeebe.protocol.record.Record
 import io.camunda.zeebe.scheduler.ActorScheduler
 import io.camunda.zeebe.scheduler.clock.ActorClock
@@ -21,6 +23,7 @@ import org.camunda.community.eze.engine.EzeLogStreamFactory
 import org.camunda.community.eze.engine.EzeStreamProcessorFactory
 import org.camunda.community.eze.engine.ZeebeEngineImpl
 import org.camunda.community.eze.grpc.EzeGatewayFactory
+import java.util.concurrent.CopyOnWriteArrayList
 
 typealias PartitionId = Int
 
@@ -29,7 +32,10 @@ object EngineFactory {
     private val partitionId: PartitionId = 1
     private val partitionCount = 1
 
+
     fun create(exporters: Iterable<Exporter> = emptyList()): ZeebeEngine {
+
+
 
         val clock = createActorClock()
 
@@ -40,9 +46,10 @@ object EngineFactory {
             scheduler = scheduler
         )
 
+        val records = CopyOnWriteArrayList<TypedRecord<UnifiedRecordValue>>()
         val gateway = EzeGatewayFactory.createGateway(
             port = ZeebeEngineImpl.PORT,
-            streamWriter = logStream.createWriter()
+            records = records
         )
 
         val streamProcessor = EzeStreamProcessorFactory.createStreamProcessor(

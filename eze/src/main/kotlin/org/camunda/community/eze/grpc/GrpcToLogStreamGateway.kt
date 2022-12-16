@@ -9,11 +9,12 @@ package org.camunda.community.eze.grpc
 
 import com.google.protobuf.GeneratedMessageV3
 import com.google.rpc.Status
+import io.camunda.zeebe.engine.api.TypedRecord
 import io.camunda.zeebe.gateway.protocol.GatewayGrpc
 import io.camunda.zeebe.gateway.protocol.GatewayOuterClass
-import io.camunda.zeebe.logstreams.log.LogStreamRecordWriter
 import io.camunda.zeebe.protocol.impl.encoding.MsgPackConverter
 import io.camunda.zeebe.protocol.impl.record.RecordMetadata
+import io.camunda.zeebe.protocol.impl.record.UnifiedRecordValue
 import io.camunda.zeebe.protocol.impl.record.value.deployment.DeploymentRecord
 import io.camunda.zeebe.protocol.impl.record.value.incident.IncidentRecord
 import io.camunda.zeebe.protocol.impl.record.value.job.JobBatchRecord
@@ -22,12 +23,12 @@ import io.camunda.zeebe.protocol.impl.record.value.message.MessageRecord
 import io.camunda.zeebe.protocol.impl.record.value.processinstance.*
 import io.camunda.zeebe.protocol.impl.record.value.variable.VariableDocumentRecord
 import io.camunda.zeebe.protocol.record.RecordType
+import io.camunda.zeebe.protocol.record.RejectionType
 import io.camunda.zeebe.protocol.record.ValueType
 import io.camunda.zeebe.protocol.record.intent.*
 import io.camunda.zeebe.protocol.record.value.VariableDocumentUpdateSemantic
 import io.camunda.zeebe.util.buffer.BufferUtil
 import io.camunda.zeebe.util.buffer.BufferUtil.wrapString
-import io.camunda.zeebe.util.buffer.BufferWriter
 import io.grpc.protobuf.StatusProto
 import io.grpc.stub.StreamObserver
 import org.agrona.DirectBuffer
@@ -36,40 +37,108 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 
 class GrpcToLogStreamGateway(
-    private val writer: LogStreamRecordWriter
+    private val records : MutableList<TypedRecord<UnifiedRecordValue>>
 ) : GatewayGrpc.GatewayImplBase(), AutoCloseable {
 
     private val executor = Executors.newSingleThreadExecutor()
+
+    class RecordWrapper(
+        private val recordValue : UnifiedRecordValue,
+        private val recordMetadata: RecordMetadata,
+        private val key : Long
+    ) : TypedRecord<UnifiedRecordValue> {
+        override fun getPosition(): Long {
+
+            TODO("Not yet implemented")
+        }
+
+        override fun getSourceRecordPosition(): Long {
+            return -1;
+        }
+
+        override fun getKey(): Long {
+            return key;
+        }
+
+        override fun getTimestamp(): Long {
+
+            TODO("Not yet implemented")
+        }
+
+        override fun getIntent(): Intent {
+            return recordMetadata.intent
+        }
+
+        override fun getPartitionId(): Int {
+            return 1;
+        }
+
+        override fun getRecordType(): RecordType {
+            return recordMetadata.recordType
+        }
+
+        override fun getRejectionType(): RejectionType {
+            return recordMetadata.rejectionType
+        }
+
+        override fun getRejectionReason(): String {
+            return recordMetadata.rejectionReason
+        }
+
+        override fun getBrokerVersion(): String {
+            return recordMetadata.brokerVersion.toString()
+        }
+
+        override fun getValueType(): ValueType {
+            return recordMetadata.valueType
+        }
+
+        override fun getValue(): UnifiedRecordValue {
+            return recordValue
+        }
+
+        override fun getRequestStreamId(): Int {
+            return recordMetadata.requestStreamId
+        }
+
+        override fun getRequestId(): Long {
+            return recordMetadata.requestId
+        }
+
+        override fun getLength(): Int {
+            return recordMetadata.length + recordValue.length
+        }
+    }
 
     private val responseObserverMap = mutableMapOf<Long, StreamObserver<*>>()
     private val responseTypeMap = mutableMapOf<Long, Class<out GeneratedMessageV3>>()
 
     private val recordMetadata = RecordMetadata()
     private val requestIdGenerator = AtomicLong()
-
-    private fun writeCommandWithKey(
-        key: Long,
-        metadata: RecordMetadata,
-        bufferWriter: BufferWriter
-    ) {
-        writer.reset()
-
-        writer
-            .key(key)
-            .metadataWriter(metadata)
-            .valueWriter(bufferWriter)
-            .tryWrite()
-    }
-
-    private fun writeCommandWithoutKey(metadata: RecordMetadata, bufferWriter: BufferWriter) {
-        writer.reset()
-
-        writer
-            .keyNull()
-            .metadataWriter(metadata)
-            .valueWriter(bufferWriter)
-            .tryWrite()
-    }
+//
+//    private fun writeCommandWithKey(
+//        key: Long,
+//        metadata: RecordMetadata,
+//        bufferWriter: BufferWriter
+//    ) {
+//        writer.reset()
+//
+//        writer
+//            .key(key)
+//            .metadataWriter(metadata)
+//            .valueWriter(bufferWriter)
+//            .tryWrite()
+//    }
+//
+//    private fun writeCommandWithoutKey(metadata: RecordMetadata, bufferWriter: BufferWriter) {
+//        writer.reset()
+//
+//        writer
+//            .keyNull()
+//            .metadataWriter(metadata)
+//            .valueWriter(bufferWriter)
+//            .tryWrite()
+//    }
 
 
     override fun publishMessage(
@@ -92,7 +161,7 @@ class GrpcToLogStreamGateway(
             messageRecord.timeToLive = messageRequest.timeToLive
             setVariablesAsMessagePack(messageRequest.variables, messageRecord::setVariables)
 
-            writeCommandWithoutKey(recordMetadata, messageRecord)
+            records.add(RecordWrapper(messageRecord, recordMetadata,  -1))
         }
     }
 
@@ -117,8 +186,7 @@ class GrpcToLogStreamGateway(
                     .setResourceName(processRequestObject.name)
                     .setResource(processRequestObject.definition.toByteArray())
             }
-
-            writeCommandWithoutKey(recordMetadata, deploymentRecord)
+            records.add(RecordWrapper(deploymentRecord, recordMetadata,  -1))
         }
     }
 
@@ -144,7 +212,7 @@ class GrpcToLogStreamGateway(
                     .setResource(resourceRequestObject.content.toByteArray())
             }
 
-            writeCommandWithoutKey(recordMetadata, deploymentRecord)
+            records.add(RecordWrapper(deploymentRecord, recordMetadata,  -1))
         }
     }
 
@@ -161,7 +229,7 @@ class GrpcToLogStreamGateway(
                 .intent(ProcessInstanceCreationIntent.CREATE)
 
             val processInstanceCreationRecord = createProcessInstanceCreationRecord(request)
-            writeCommandWithoutKey(recordMetadata, processInstanceCreationRecord)
+            records.add(RecordWrapper(processInstanceCreationRecord, recordMetadata,  -1))
         }
     }
 
@@ -180,7 +248,7 @@ class GrpcToLogStreamGateway(
             val processInstanceCreationRecord = createProcessInstanceCreationRecord(request.request)
             processInstanceCreationRecord.setFetchVariables(request.fetchVariablesList)
 
-            writeCommandWithoutKey(recordMetadata, processInstanceCreationRecord)
+            records.add(RecordWrapper(processInstanceCreationRecord, recordMetadata,  -1))
         }
     }
 
@@ -220,7 +288,7 @@ class GrpcToLogStreamGateway(
 
             processInstanceRecord.processInstanceKey = request.processInstanceKey
 
-            writeCommandWithKey(request.processInstanceKey, recordMetadata, processInstanceRecord)
+            records.add(RecordWrapper(processInstanceRecord, recordMetadata,  request.processInstanceKey))
         }
     }
 
@@ -242,8 +310,7 @@ class GrpcToLogStreamGateway(
             variableDocumentRecord.scopeKey = request.elementInstanceKey
             variableDocumentRecord.updateSemantics =
                 if (request.local) VariableDocumentUpdateSemantic.LOCAL else VariableDocumentUpdateSemantic.PROPAGATE
-
-            writeCommandWithoutKey(recordMetadata, variableDocumentRecord)
+            records.add(RecordWrapper(variableDocumentRecord, recordMetadata, -1))
         }
     }
 
@@ -260,8 +327,7 @@ class GrpcToLogStreamGateway(
                 .intent(IncidentIntent.RESOLVE)
 
             val incidentRecord = IncidentRecord()
-
-            writeCommandWithKey(request.incidentKey, recordMetadata, incidentRecord)
+            records.add(RecordWrapper(incidentRecord, recordMetadata,  request.incidentKey))
         }
     }
 
@@ -284,7 +350,7 @@ class GrpcToLogStreamGateway(
             jobBatchRecord.timeout = request.timeout
             jobBatchRecord.maxJobsToActivate = request.maxJobsToActivate
 
-            writeCommandWithoutKey(recordMetadata, jobBatchRecord)
+            records.add(RecordWrapper(jobBatchRecord, recordMetadata,  -1))
         }
     }
 
@@ -302,8 +368,7 @@ class GrpcToLogStreamGateway(
 
             val jobRecord = JobRecord()
             setVariablesAsMessagePack(request.variables, jobRecord::setVariables)
-
-            writeCommandWithKey(request.jobKey, recordMetadata, jobRecord)
+            records.add(RecordWrapper(jobRecord, recordMetadata,  request.jobKey))
         }
     }
 
@@ -325,7 +390,7 @@ class GrpcToLogStreamGateway(
             jobRecord.errorMessage = request.errorMessage
             jobRecord.retryBackoff = request.retryBackOff
 
-            writeCommandWithKey(request.jobKey, recordMetadata, jobRecord)
+            records.add(RecordWrapper(jobRecord, recordMetadata,  request.jobKey))
         }
     }
 
@@ -345,8 +410,7 @@ class GrpcToLogStreamGateway(
 
             jobRecord.setErrorCode(wrapString(request.errorCode))
             jobRecord.errorMessage = request.errorMessage
-
-            writeCommandWithKey(request.jobKey, recordMetadata, jobRecord)
+            records.add(RecordWrapper(jobRecord, recordMetadata,  request.jobKey))
         }
     }
 
@@ -364,8 +428,7 @@ class GrpcToLogStreamGateway(
 
             val jobRecord = JobRecord()
             jobRecord.retries = request.retries
-
-            writeCommandWithKey(request.jobKey, recordMetadata, jobRecord)
+            records.add(RecordWrapper(jobRecord, recordMetadata,  request.jobKey))
         }
     }
 
@@ -406,8 +469,7 @@ class GrpcToLogStreamGateway(
 
                 modificationRecord.addTerminateInstruction(instruction)
             }
-
-            writeCommandWithKey(request.processInstanceKey, recordMetadata, modificationRecord)
+            records.add(RecordWrapper(modificationRecord, recordMetadata,  request.processInstanceKey))
         }
     }
 
