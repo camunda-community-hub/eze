@@ -42,7 +42,7 @@ object EngineFactory {
         val streamProcessor = EzeStreamProcessorFactory.createStreamProcessor(
             records = records,
             responseWriter = gateway.getResponseWriter(),
-            partitionCount = partitionCount
+            partitionId = partitionCount
         )
 //
 //        val exporterReader = logStream.createReader()
@@ -91,7 +91,7 @@ object EngineFactory {
 
         val records = mutableListOf<Record<*>>()
 
-        recordsList.forEach {
+        recordsList.forEachIndexed { index: Int, it ->
             val metadata = RecordMetadata()
             metadata.valueType(it.valueType)
                 .intent(it.intent)
@@ -107,9 +107,9 @@ object EngineFactory {
                 metadata,
                 it.key,
                 partitionId,
-                it.position,
+                index.toLong(),
                 it.sourceRecordPosition,
-                it.timestamp
+                System.currentTimeMillis()
             )
             records.add(record)
         }

@@ -16,6 +16,8 @@ import io.camunda.zeebe.engine.processing.streamprocessor.TypedRecordProcessorCo
 import io.camunda.zeebe.engine.processing.streamprocessor.TypedRecordProcessors
 import io.camunda.zeebe.protocol.ZbColumnFamilies
 import io.camunda.zeebe.stream.api.CommandResponseWriter
+import io.camunda.zeebe.stream.api.InterPartitionCommandSender
+import io.camunda.zeebe.stream.api.scheduling.ProcessingScheduleService
 import io.camunda.zeebe.util.FeatureFlags
 import org.camunda.community.eze.db.EzeZeebeDbFactory
 import org.camunda.community.eze.records.RecordsList
@@ -26,16 +28,19 @@ object EzeStreamProcessorFactory {
     fun createStreamProcessor(
         records: RecordsList,
         responseWriter: CommandResponseWriter,
-        partitionCount: Int,
+        partitionId: Int,
     ): EzeStreamProcessor {
-        val engine = createZeebeEngine(partitionCount)
+        val engine = createZeebeEngine(partitionId)
         val zeebeDb = createDatabase()
 
         return EzeStreamProcessor(
             records,
+            partitionId,
             engine,
             responseWriter,
             zeebeDb,
+            createPartitionCommandSender(records),
+            createProcessingScheduleService(records),
             startCallback = {
             },
             stopCallback = {
@@ -74,18 +79,15 @@ object EzeStreamProcessorFactory {
         }
     }
 
-//    private fun createPartitionCommandSender(logStream: EzeLogStream): InterPartitionCommandSender {
-//
-//        val streamWriters =
-//            mapOf(logStream.getZeebeLogStream().partitionId to logStream.createWriter())
-//
-//        return SinglePartitionCommandSender(
-//            writerLookUp = { partitionId ->
-//                streamWriters[partitionId]
-//                    ?: throw RuntimeException("no stream writer found for partition '$partitionId'")
-//            }
-//        )
-//    }
+    private fun createPartitionCommandSender(records: RecordsList): InterPartitionCommandSender {
+        return SinglePartitionCommandSender(
+            writer = { record ->
+                records.add(record)
+            }
+        )
+    }
 
-
+    private fun createProcessingScheduleService(records: RecordsList): ProcessingScheduleService {
+        return SingleThreadProcessingScheduleService(records)
+    }
 }

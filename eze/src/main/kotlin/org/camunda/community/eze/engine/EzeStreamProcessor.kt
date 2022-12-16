@@ -41,7 +41,6 @@ class EzeStreamProcessor(
     private var lastPosition = 0;
     private val executor = Executors.newSingleThreadExecutor()
 
-
     fun start() {
         startCallback.run()
         records.registerAddListener(this::scheduleProcessing)
@@ -94,7 +93,7 @@ class EzeStreamProcessor(
 
         val intermediateList = mutableListOf<TypedRecord<UnifiedRecordValue>>()
         for (record: RecordBatchEntry in processingResult.recordBatch) {
-            val typedRecord = convert(record)
+            val typedRecord = RecordWrapper.convert(record)
             intermediateList.add(typedRecord)
         }
         // in order to add a batch of records (atomically) we need to addAll
@@ -116,10 +115,6 @@ class EzeStreamProcessor(
         }
 
         processingResult.executePostCommitTasks()
-    }
-
-    private fun convert(recordBatchEntry: RecordBatchEntry) : TypedRecord<UnifiedRecordValue> {
-        return RecordWrapper(recordBatchEntry.recordValue(), recordMetadata = recordBatchEntry.recordMetadata(), recordBatchEntry.key())
     }
 
     fun stop() {

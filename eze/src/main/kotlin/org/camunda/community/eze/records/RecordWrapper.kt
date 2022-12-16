@@ -14,6 +14,7 @@ import io.camunda.zeebe.protocol.record.RejectionType
 import io.camunda.zeebe.protocol.record.ValueType
 import io.camunda.zeebe.protocol.record.intent.Intent
 import io.camunda.zeebe.stream.api.records.TypedRecord
+import io.camunda.zeebe.stream.impl.records.RecordBatchEntry
 
 class RecordWrapper(
     private val recordValue : UnifiedRecordValue,
@@ -21,8 +22,13 @@ class RecordWrapper(
     private val key : Long
 ) : TypedRecord<UnifiedRecordValue> {
     override fun getPosition(): Long {
-
         TODO("Not yet implemented")
+    }
+
+    companion object {
+        fun convert(recordBatchEntry: RecordBatchEntry) : TypedRecord<UnifiedRecordValue> {
+            return RecordWrapper(recordBatchEntry.recordValue(), recordMetadata = recordBatchEntry.recordMetadata(), recordBatchEntry.key())
+        }
     }
 
     override fun getSourceRecordPosition(): Long {
