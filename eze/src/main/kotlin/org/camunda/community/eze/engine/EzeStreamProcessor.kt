@@ -69,34 +69,33 @@ class EzeStreamProcessor(
         while (lastPosition.get() < records.size) {
             logger.info("Process pos: {}, records {}", lastPosition.get(), records.size)
             val typedRecord = records[lastPosition.getAndIncrement()]
-            logger.info("Process record: {}", typedRecord)
 
-                try {
-                    if (typedRecord.recordType == RecordType.COMMAND &&
-                        engine.accepts(typedRecord.valueType)
-                    ) {
-                        val resultBuilder = BufferedProcessingResultBuilder({ _, _ -> true })
-                        transactionContext.runInTransaction {
-                            val processingResult = engine.process(typedRecord, resultBuilder)
-                            processResult(typedRecord, processingResult)
-                        }
+            try {
+                if (typedRecord.recordType == RecordType.COMMAND &&
+                    engine.accepts(typedRecord.valueType)
+                ) {
+                    logger.info("Process record: {}", typedRecord)
+                    val resultBuilder = BufferedProcessingResultBuilder({ _, _ -> true })
+                    transactionContext.runInTransaction {
+                        val processingResult = engine.process(typedRecord, resultBuilder)
+                        processResult(typedRecord, processingResult)
                     }
-                } catch (e: Exception) {
-                    try {
-                        logger.error("Error on process record {}.", typedRecord, e)
-                        val resultBuilder = BufferedProcessingResultBuilder({ _, _ -> true })
-                        val onProcessingErrorResult =
-                            engine.onProcessingError(e, typedRecord, resultBuilder)
-                        processResult(typedRecord, onProcessingErrorResult)
-                    } catch (e: Exception) {
-                        logger.error("Error on handling processing error. Lets stop that.", e)
-                        throw e
-                    }
+                } else {
+                    logger.info("Skip record: {}", typedRecord)
                 }
-//            lastPosition.incrementAndGet();
+            } catch (e: Exception) {
+                try {
+                    logger.error("Error on process record {}.", typedRecord, e)
+                    val resultBuilder = BufferedProcessingResultBuilder({ _, _ -> true })
+                    val onProcessingErrorResult =
+                        engine.onProcessingError(e, typedRecord, resultBuilder)
+                    processResult(typedRecord, onProcessingErrorResult)
+                } catch (e: Exception) {
+                    logger.error("Error on handling processing error. Lets stop that.", e)
+                    throw e
+                }
+            }
         }
-//            currentPosition++;
-//        }
     }
 
     private fun processResult(
