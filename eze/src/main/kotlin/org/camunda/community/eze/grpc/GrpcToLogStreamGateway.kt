@@ -41,38 +41,13 @@ class GrpcToLogStreamGateway(
     private val records : MutableList<TypedRecord<UnifiedRecordValue>>
 ) : GatewayGrpc.GatewayImplBase(), AutoCloseable {
 
-    private val logger = LoggerFactory.getLogger("EZE")
+    private val logger = LoggerFactory.getLogger(GrpcToLogStreamGateway::class.java)
     private val executor = Executors.newSingleThreadExecutor()
 
     private val responseObserverMap = mutableMapOf<Long, StreamObserver<*>>()
     private val responseTypeMap = mutableMapOf<Long, Class<out GeneratedMessageV3>>()
 
     private val requestIdGenerator = AtomicLong()
-//
-//    private fun writeCommandWithKey(
-//        key: Long,
-//        metadata: RecordMetadata,
-//        bufferWriter: BufferWriter
-//    ) {
-//        writer.reset()
-//
-//        writer
-//            .key(key)
-//            .metadataWriter(metadata)
-//            .valueWriter(bufferWriter)
-//            .tryWrite()
-//    }
-//
-//    private fun writeCommandWithoutKey(metadata: RecordMetadata, bufferWriter: BufferWriter) {
-//        writer.reset()
-//
-//        writer
-//            .keyNull()
-//            .metadataWriter(metadata)
-//            .valueWriter(bufferWriter)
-//            .tryWrite()
-//    }
-
 
     override fun publishMessage(
         messageRequest: GatewayOuterClass.PublishMessageRequest,

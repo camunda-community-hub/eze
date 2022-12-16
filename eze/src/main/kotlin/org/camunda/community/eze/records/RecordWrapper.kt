@@ -87,4 +87,8 @@ class RecordWrapper(
     override fun getLength(): Int {
         return recordMetadata.length + recordValue.length
     }
+
+    override fun toString(): String {
+        return "RecordWrapper(recordValue=$recordValue, recordMetadata=$recordMetadata, key=$key)"
+    }
 }
