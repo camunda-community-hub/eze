@@ -37,6 +37,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import java.time.Duration
+import java.util.concurrent.TimeUnit
 
 
 @ExtendWith(PrintRecordStreamExtension::class)
@@ -137,8 +138,9 @@ class EngineClientTest {
                 .message { it.name("a").zeebeCorrelationKeyExpression("key") }
                 .endEvent()
                 .done(), "process.bpmn")
+            .requestTimeout(Duration.ofDays(12))
             .send()
-            .join()
+            .join(19999, TimeUnit.DAYS)
 
         val processInstanceResult = zeebeClient.newCreateInstanceCommand()
             .bpmnProcessId("process")

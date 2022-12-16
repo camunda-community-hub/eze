@@ -70,16 +70,6 @@ object EngineFactory {
         )
     }
 
-    private fun createActorScheduler(clock: ActorClock): ActorScheduler {
-        val scheduler = ActorScheduler.newActorScheduler()
-            .setActorClock(clock)
-            .build()
-
-        scheduler.start()
-
-        return scheduler
-    }
-
     private fun createActorClock(): ControlledActorClock {
         return ControlledActorClock()
     }
