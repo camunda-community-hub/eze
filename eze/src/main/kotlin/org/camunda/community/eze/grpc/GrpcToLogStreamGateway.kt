@@ -32,6 +32,7 @@ import io.grpc.protobuf.StatusProto
 import io.grpc.stub.StreamObserver
 import org.agrona.DirectBuffer
 import org.camunda.community.eze.records.RecordWrapper
+import org.slf4j.LoggerFactory
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
@@ -40,6 +41,7 @@ class GrpcToLogStreamGateway(
     private val records : MutableList<TypedRecord<UnifiedRecordValue>>
 ) : GatewayGrpc.GatewayImplBase(), AutoCloseable {
 
+    private val logger = LoggerFactory.getLogger("EZE")
     private val executor = Executors.newSingleThreadExecutor()
 
     private val responseObserverMap = mutableMapOf<Long, StreamObserver<*>>()
@@ -460,10 +462,15 @@ class GrpcToLogStreamGateway(
 
     fun responseCallback(requestId: Long, response: GeneratedMessageV3) {
         executor.submit {
-            val streamObserver =
-                responseObserverMap.remove(requestId) as StreamObserver<GeneratedMessageV3>
-            streamObserver.onNext(response)
-            streamObserver.onCompleted()
+            try {
+                val streamObserver =
+                    responseObserverMap.remove(requestId) as StreamObserver<GeneratedMessageV3>
+                streamObserver.onNext(response)
+                streamObserver.onCompleted()
+            } catch (e: Exception) {
+                logger.error("Error on sending response", e)
+                throw e
+            }
         }
     }
 

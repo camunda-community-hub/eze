@@ -7,7 +7,6 @@
  */
 package org.camunda.community.eze.engine
 
-import io.camunda.zeebe.db.TransactionContext
 import io.camunda.zeebe.db.ZeebeDb
 import io.camunda.zeebe.engine.Engine
 import io.camunda.zeebe.protocol.ZbColumnFamilies
@@ -66,35 +65,41 @@ class EzeStreamProcessor(
 
     private fun process() {
 //        var currentPosition = lastPosition
-//        while (currentPosition < records.size) {
+        while (lastPosition < records.size) {
             val typedRecord = records[lastPosition]
 
             if (typedRecord.recordType == RecordType.COMMAND &&
-                engine.accepts(typedRecord.valueType)) {
+                engine.accepts(typedRecord.valueType)
+            ) {
                 try {
-                    val resultBuilder = BufferedProcessingResultBuilder({ _, _ -> true})
+                    val resultBuilder = BufferedProcessingResultBuilder({ _, _ -> true })
                     transactionContext.runInTransaction {
                         val processingResult = engine.process(typedRecord, resultBuilder)
-                        processResult(processingResult)
+                        processResult(typedRecord, processingResult)
                     }
                 } catch (e: Exception) {
                     try {
                         logger.error("Error on process record {}.", typedRecord, e)
-                        val resultBuilder = BufferedProcessingResultBuilder({ _, _ -> true})
-                        val onProcessingErrorResult = engine.onProcessingError(e, typedRecord, resultBuilder)
-                        processResult(onProcessingErrorResult)
+                        val resultBuilder = BufferedProcessingResultBuilder({ _, _ -> true })
+                        val onProcessingErrorResult =
+                            engine.onProcessingError(e, typedRecord, resultBuilder)
+                        processResult(typedRecord, onProcessingErrorResult)
                     } catch (e: Exception) {
                         logger.error("Error on handling processing error. Lets stop that.", e)
                         throw e
                     }
                 }
             }
-        lastPosition++
+            lastPosition++
+        }
 //            currentPosition++;
 //        }
     }
 
-    private fun processResult(processingResult: ProcessingResult) {
+    private fun processResult(
+        typedRecord: TypedRecord<UnifiedRecordValue>,
+        processingResult: ProcessingResult
+    ) {
 
         val intermediateList = mutableListOf<TypedRecord<UnifiedRecordValue>>()
         for (record: RecordBatchEntry in processingResult.recordBatch) {
@@ -116,7 +121,7 @@ class EzeStreamProcessor(
                 .rejectionType(recordMetadata.rejectionType)
                 .partitionId(1)
                 .valueWriter(recordValue)
-                .tryWriteResponse(recordMetadata.requestStreamId, recordMetadata.requestId)
+                .tryWriteResponse(typedRecord.requestStreamId, typedRecord.requestId)
         }
 
         processingResult.executePostCommitTasks()
