@@ -9,50 +9,36 @@ package org.camunda.community.eze.engine
 
 import io.camunda.zeebe.db.ZeebeDb
 import io.camunda.zeebe.engine.Engine
-import io.camunda.zeebe.engine.api.CommandResponseWriter
-import io.camunda.zeebe.engine.api.InterPartitionCommandSender
 import io.camunda.zeebe.engine.processing.EngineProcessors
 import io.camunda.zeebe.engine.processing.deployment.distribute.DeploymentDistributionCommandSender
 import io.camunda.zeebe.engine.processing.message.command.SubscriptionCommandSender
 import io.camunda.zeebe.engine.processing.streamprocessor.TypedRecordProcessorContext
 import io.camunda.zeebe.engine.processing.streamprocessor.TypedRecordProcessors
-import io.camunda.zeebe.engine.state.ZbColumnFamilies
-import io.camunda.zeebe.engine.state.appliers.EventAppliers
-import io.camunda.zeebe.scheduler.ActorSchedulingService
-import io.camunda.zeebe.streamprocessor.StreamProcessor
-import io.camunda.zeebe.streamprocessor.StreamProcessorMode
+import io.camunda.zeebe.protocol.ZbColumnFamilies
+import io.camunda.zeebe.stream.api.CommandResponseWriter
 import io.camunda.zeebe.util.FeatureFlags
 import org.camunda.community.eze.db.EzeZeebeDbFactory
+import org.camunda.community.eze.records.RecordsList
 import java.nio.file.Files
 
 object EzeStreamProcessorFactory {
 
     fun createStreamProcessor(
-        logStream: EzeLogStream,
+        records: RecordsList,
         responseWriter: CommandResponseWriter,
-        scheduler: ActorSchedulingService,
-        partitionCount: Int
+        partitionCount: Int,
     ): EzeStreamProcessor {
-
+        val engine = createZeebeEngine(partitionCount)
         val zeebeDb = createDatabase()
-        val streamProcessor = StreamProcessor.builder()
-            .logStream(logStream.getZeebeLogStream())
-            .zeebeDb(zeebeDb)
-            .eventApplierFactory { EventAppliers(it) }
-            .commandResponseWriter(responseWriter)
-            .partitionCommandSender(createPartitionCommandSender(logStream))
-            .nodeId(0)
-            .actorSchedulingService(scheduler)
-            .streamProcessorMode(StreamProcessorMode.PROCESSING)
-            .recordProcessors(listOf(createZeebeEngine(partitionCount)))
-            .build()
 
         return EzeStreamProcessor(
+            records,
+            engine,
+            responseWriter,
+            zeebeDb,
             startCallback = {
-                streamProcessor.openAsync(false).join()
             },
             stopCallback = {
-                streamProcessor.close()
                 zeebeDb.close()
             }
         )
@@ -88,18 +74,18 @@ object EzeStreamProcessorFactory {
         }
     }
 
-    private fun createPartitionCommandSender(logStream: EzeLogStream): InterPartitionCommandSender {
-
-        val streamWriters =
-            mapOf(logStream.getZeebeLogStream().partitionId to logStream.createWriter())
-
-        return SinglePartitionCommandSender(
-            writerLookUp = { partitionId ->
-                streamWriters[partitionId]
-                    ?: throw RuntimeException("no stream writer found for partition '$partitionId'")
-            }
-        )
-    }
+//    private fun createPartitionCommandSender(logStream: EzeLogStream): InterPartitionCommandSender {
+//
+//        val streamWriters =
+//            mapOf(logStream.getZeebeLogStream().partitionId to logStream.createWriter())
+//
+//        return SinglePartitionCommandSender(
+//            writerLookUp = { partitionId ->
+//                streamWriters[partitionId]
+//                    ?: throw RuntimeException("no stream writer found for partition '$partitionId'")
+//            }
+//        )
+//    }
 
 
 }

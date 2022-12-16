@@ -10,7 +10,6 @@ package org.camunda.community.eze.grpc
 import com.google.protobuf.GeneratedMessageV3
 import com.google.rpc.Code
 import com.google.rpc.Status
-import io.camunda.zeebe.engine.api.CommandResponseWriter
 import io.camunda.zeebe.gateway.protocol.GatewayOuterClass
 import io.camunda.zeebe.protocol.impl.encoding.MsgPackConverter
 import io.camunda.zeebe.protocol.impl.record.value.deployment.DeploymentRecord
@@ -24,6 +23,7 @@ import io.camunda.zeebe.protocol.record.RejectionType
 import io.camunda.zeebe.protocol.record.ValueType
 import io.camunda.zeebe.protocol.record.intent.Intent
 import io.camunda.zeebe.protocol.record.intent.JobIntent
+import io.camunda.zeebe.stream.api.CommandResponseWriter
 import io.camunda.zeebe.util.buffer.BufferUtil
 import io.camunda.zeebe.util.buffer.BufferWriter
 import org.agrona.DirectBuffer

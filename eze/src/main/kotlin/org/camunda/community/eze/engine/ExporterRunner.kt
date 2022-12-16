@@ -16,6 +16,7 @@ import io.camunda.zeebe.protocol.record.Record
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.time.Duration
+import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
@@ -101,6 +102,14 @@ class ExporterRunner(
             val future =
                 executor.scheduleWithFixedDelay(task, 0, delay.toMillis(), TimeUnit.MILLISECONDS)
             return ScheduledTask { future.cancel(true) }
+        }
+
+        override fun updateLastExportedRecordPosition(position: Long, metadata: ByteArray?) {
+            TODO("Not yet implemented")
+        }
+
+        override fun readMetadata(): Optional<ByteArray> {
+            TODO("Not yet implemented")
         }
 
         override fun close() {

@@ -7,22 +7,18 @@
  */
 package org.camunda.community.eze
 
-import io.camunda.zeebe.engine.api.TypedRecord
-import io.camunda.zeebe.engine.processing.streamprocessor.TypedEventRegistry
 import io.camunda.zeebe.exporter.api.Exporter
-import io.camunda.zeebe.logstreams.log.LogStreamReader
 import io.camunda.zeebe.protocol.impl.record.CopiedRecord
 import io.camunda.zeebe.protocol.impl.record.RecordMetadata
-import io.camunda.zeebe.protocol.impl.record.UnifiedRecordValue
+import io.camunda.zeebe.protocol.impl.record.VersionInfo
 import io.camunda.zeebe.protocol.record.Record
 import io.camunda.zeebe.scheduler.ActorScheduler
 import io.camunda.zeebe.scheduler.clock.ActorClock
 import io.camunda.zeebe.scheduler.clock.ControlledActorClock
-import org.camunda.community.eze.engine.ExporterRunner
-import org.camunda.community.eze.engine.EzeLogStreamFactory
 import org.camunda.community.eze.engine.EzeStreamProcessorFactory
 import org.camunda.community.eze.engine.ZeebeEngineImpl
 import org.camunda.community.eze.grpc.EzeGatewayFactory
+import org.camunda.community.eze.records.RecordsList
 import java.util.concurrent.CopyOnWriteArrayList
 
 typealias PartitionId = Int
@@ -35,53 +31,41 @@ object EngineFactory {
 
     fun create(exporters: Iterable<Exporter> = emptyList()): ZeebeEngine {
 
-
-
         val clock = createActorClock()
 
-        val scheduler = createActorScheduler(clock)
-
-        val logStream = EzeLogStreamFactory.createLogStream(
-            partitionId = partitionId,
-            scheduler = scheduler
-        )
-
-        val records = CopyOnWriteArrayList<TypedRecord<UnifiedRecordValue>>()
+        val records = RecordsList(CopyOnWriteArrayList())
         val gateway = EzeGatewayFactory.createGateway(
             port = ZeebeEngineImpl.PORT,
             records = records
         )
 
         val streamProcessor = EzeStreamProcessorFactory.createStreamProcessor(
-            logStream = logStream,
+            records = records,
             responseWriter = gateway.getResponseWriter(),
-            scheduler = scheduler,
             partitionCount = partitionCount
         )
-
-        val exporterReader = logStream.createReader()
-        val recordStreamReader = logStream.createReader()
-
-        val exporterRunner = ExporterRunner(
-            exporters = exporters,
-            reader = { position -> createRecordStream(exporterReader, position) }
-        )
-        logStream.registerRecordAvailableListener(exporterRunner::onRecordsAvailable)
+//
+//        val exporterReader = logStream.createReader()
+//        val recordStreamReader = logStream.createReader()
+//
+//        val exporterRunner = ExporterRunner(
+//            exporters = exporters,
+//            reader = { position -> createRecordStream(exporterReader, position) }
+//        )
+//        logStream.registerRecordAvailableListener(exporterRunner::onRecordsAvailable)
 
         return ZeebeEngineImpl(
             startCallback = {
                 gateway.start()
                 streamProcessor.start()
-                exporterRunner.open()
+//                exporterRunner.open()
             },
             stopCallback = {
                 gateway.stop()
-                exporterRunner.close()
+//                exporterRunner.close()
                 streamProcessor.stop()
-                logStream.close()
-                scheduler.stop()
             },
-            recordStream = { createRecordStream(recordStreamReader) },
+            recordStream = { createRecordStream(records) },
             clock = clock
         )
     }
@@ -101,33 +85,30 @@ object EngineFactory {
     }
 
     private fun createRecordStream(
-        reader: LogStreamReader,
+        recordsList: RecordsList,
         position: Long = -1
     ): Iterable<Record<*>> {
 
-        position.takeIf { it > 0 }
-            ?.let { reader.seekToNextEvent(it) }
-            ?: reader.seekToFirstEvent()
-
         val records = mutableListOf<Record<*>>()
 
-        reader.forEach {
+        recordsList.forEach {
             val metadata = RecordMetadata()
-            it.readMetadata(metadata)
-
-            val value =
-                TypedEventRegistry.EVENT_REGISTRY[metadata.valueType]!!.getDeclaredConstructor()
-                    .newInstance()
-
-            it.readValue(value)
+            metadata.valueType(it.valueType)
+                .intent(it.intent)
+                .recordType(it.recordType)
+                .brokerVersion(VersionInfo.parse(it.brokerVersion))
+                .rejectionReason(it.rejectionReason)
+                .rejectionType(it.rejectionType)
+                .requestId(it.requestId)
+                .requestStreamId(it.requestStreamId)
 
             val record = CopiedRecord(
-                value,
+                it.value,
                 metadata,
                 it.key,
                 partitionId,
                 it.position,
-                it.sourceEventPosition,
+                it.sourceRecordPosition,
                 it.timestamp
             )
             records.add(record)

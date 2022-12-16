@@ -9,7 +9,6 @@ package org.camunda.community.eze.grpc
 
 import com.google.protobuf.GeneratedMessageV3
 import com.google.rpc.Status
-import io.camunda.zeebe.engine.api.TypedRecord
 import io.camunda.zeebe.gateway.protocol.GatewayGrpc
 import io.camunda.zeebe.gateway.protocol.GatewayOuterClass
 import io.camunda.zeebe.protocol.impl.encoding.MsgPackConverter
@@ -23,15 +22,16 @@ import io.camunda.zeebe.protocol.impl.record.value.message.MessageRecord
 import io.camunda.zeebe.protocol.impl.record.value.processinstance.*
 import io.camunda.zeebe.protocol.impl.record.value.variable.VariableDocumentRecord
 import io.camunda.zeebe.protocol.record.RecordType
-import io.camunda.zeebe.protocol.record.RejectionType
 import io.camunda.zeebe.protocol.record.ValueType
 import io.camunda.zeebe.protocol.record.intent.*
 import io.camunda.zeebe.protocol.record.value.VariableDocumentUpdateSemantic
+import io.camunda.zeebe.stream.api.records.TypedRecord
 import io.camunda.zeebe.util.buffer.BufferUtil
 import io.camunda.zeebe.util.buffer.BufferUtil.wrapString
 import io.grpc.protobuf.StatusProto
 import io.grpc.stub.StreamObserver
 import org.agrona.DirectBuffer
+import org.camunda.community.eze.records.RecordWrapper
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
@@ -41,74 +41,6 @@ class GrpcToLogStreamGateway(
 ) : GatewayGrpc.GatewayImplBase(), AutoCloseable {
 
     private val executor = Executors.newSingleThreadExecutor()
-
-    class RecordWrapper(
-        private val recordValue : UnifiedRecordValue,
-        private val recordMetadata: RecordMetadata,
-        private val key : Long
-    ) : TypedRecord<UnifiedRecordValue> {
-        override fun getPosition(): Long {
-
-            TODO("Not yet implemented")
-        }
-
-        override fun getSourceRecordPosition(): Long {
-            return -1;
-        }
-
-        override fun getKey(): Long {
-            return key;
-        }
-
-        override fun getTimestamp(): Long {
-
-            TODO("Not yet implemented")
-        }
-
-        override fun getIntent(): Intent {
-            return recordMetadata.intent
-        }
-
-        override fun getPartitionId(): Int {
-            return 1;
-        }
-
-        override fun getRecordType(): RecordType {
-            return recordMetadata.recordType
-        }
-
-        override fun getRejectionType(): RejectionType {
-            return recordMetadata.rejectionType
-        }
-
-        override fun getRejectionReason(): String {
-            return recordMetadata.rejectionReason
-        }
-
-        override fun getBrokerVersion(): String {
-            return recordMetadata.brokerVersion.toString()
-        }
-
-        override fun getValueType(): ValueType {
-            return recordMetadata.valueType
-        }
-
-        override fun getValue(): UnifiedRecordValue {
-            return recordValue
-        }
-
-        override fun getRequestStreamId(): Int {
-            return recordMetadata.requestStreamId
-        }
-
-        override fun getRequestId(): Long {
-            return recordMetadata.requestId
-        }
-
-        override fun getLength(): Int {
-            return recordMetadata.length + recordValue.length
-        }
-    }
 
     private val responseObserverMap = mutableMapOf<Long, StreamObserver<*>>()
     private val responseTypeMap = mutableMapOf<Long, Class<out GeneratedMessageV3>>()

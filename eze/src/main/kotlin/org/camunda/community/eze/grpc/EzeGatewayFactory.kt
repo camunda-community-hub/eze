@@ -7,9 +7,8 @@
  */
 package org.camunda.community.eze.grpc
 
-import io.camunda.zeebe.engine.api.TypedRecord
-import io.camunda.zeebe.logstreams.log.LogStreamRecordWriter
 import io.camunda.zeebe.protocol.impl.record.UnifiedRecordValue
+import io.camunda.zeebe.stream.api.records.TypedRecord
 import io.grpc.ServerBuilder
 
 object EzeGatewayFactory {

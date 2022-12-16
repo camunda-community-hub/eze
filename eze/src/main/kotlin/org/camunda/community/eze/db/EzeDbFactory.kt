@@ -9,7 +9,6 @@ package org.camunda.community.eze.db
 
 import io.camunda.zeebe.db.ZeebeDb
 import io.camunda.zeebe.db.ZeebeDbFactory
-import io.camunda.zeebe.engine.state.ZbColumnFamilies
 import java.io.File
 
 class EzeDbFactory<ColumnFamilyType : Enum<ColumnFamilyType>> : ZeebeDbFactory<ColumnFamilyType> {
