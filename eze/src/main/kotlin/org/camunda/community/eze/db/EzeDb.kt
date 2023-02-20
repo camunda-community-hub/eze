@@ -9,7 +9,6 @@ package org.camunda.community.eze.db
 
 import io.camunda.zeebe.db.*
 import io.camunda.zeebe.db.impl.DbNil
-import io.camunda.zeebe.engine.state.ZbColumnFamilies
 import java.io.File
 import java.util.*
 

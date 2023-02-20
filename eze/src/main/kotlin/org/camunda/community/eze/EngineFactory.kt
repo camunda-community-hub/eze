@@ -7,7 +7,6 @@
  */
 package org.camunda.community.eze
 
-import io.camunda.zeebe.engine.processing.streamprocessor.TypedEventRegistry
 import io.camunda.zeebe.exporter.api.Exporter
 import io.camunda.zeebe.logstreams.log.LogStreamReader
 import io.camunda.zeebe.protocol.impl.record.CopiedRecord
@@ -16,6 +15,7 @@ import io.camunda.zeebe.protocol.record.Record
 import io.camunda.zeebe.scheduler.ActorScheduler
 import io.camunda.zeebe.scheduler.clock.ActorClock
 import io.camunda.zeebe.scheduler.clock.ControlledActorClock
+import io.camunda.zeebe.stream.impl.TypedEventRegistry
 import org.camunda.community.eze.engine.ExporterRunner
 import org.camunda.community.eze.engine.EzeLogStreamFactory
 import org.camunda.community.eze.engine.EzeStreamProcessorFactory

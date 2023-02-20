@@ -7,14 +7,14 @@
  */
 package org.camunda.community.eze.grpc
 
-import io.camunda.zeebe.logstreams.log.LogStreamRecordWriter
+import io.camunda.zeebe.logstreams.log.LogStreamWriter
 import io.grpc.ServerBuilder
 
 object EzeGatewayFactory {
 
     fun createGateway(
         port: Int,
-        streamWriter: LogStreamRecordWriter
+        streamWriter: LogStreamWriter
     ): EzeGateway {
 
         val gateway = GrpcToLogStreamGateway(writer = streamWriter)

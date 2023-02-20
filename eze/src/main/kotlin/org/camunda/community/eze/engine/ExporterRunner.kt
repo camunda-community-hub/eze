@@ -16,6 +16,7 @@ import io.camunda.zeebe.protocol.record.Record
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.time.Duration
+import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
@@ -95,6 +96,14 @@ class ExporterRunner(
 
         override fun updateLastExportedRecordPosition(position: Long) {
             // currently, not needed
+        }
+
+        override fun updateLastExportedRecordPosition(position: Long, metadata: ByteArray?) {
+            // currently, not needed
+        }
+
+        override fun readMetadata(): Optional<ByteArray> {
+            return Optional.empty()
         }
 
         override fun scheduleCancellableTask(delay: Duration, task: Runnable): ScheduledTask {

@@ -11,9 +11,11 @@ import com.google.protobuf.GeneratedMessageV3
 import com.google.rpc.Status
 import io.camunda.zeebe.gateway.protocol.GatewayGrpc
 import io.camunda.zeebe.gateway.protocol.GatewayOuterClass
-import io.camunda.zeebe.logstreams.log.LogStreamRecordWriter
+import io.camunda.zeebe.logstreams.log.LogAppendEntry
+import io.camunda.zeebe.logstreams.log.LogStreamWriter
 import io.camunda.zeebe.protocol.impl.encoding.MsgPackConverter
 import io.camunda.zeebe.protocol.impl.record.RecordMetadata
+import io.camunda.zeebe.protocol.impl.record.UnifiedRecordValue
 import io.camunda.zeebe.protocol.impl.record.value.deployment.DeploymentRecord
 import io.camunda.zeebe.protocol.impl.record.value.incident.IncidentRecord
 import io.camunda.zeebe.protocol.impl.record.value.job.JobBatchRecord
@@ -27,7 +29,6 @@ import io.camunda.zeebe.protocol.record.intent.*
 import io.camunda.zeebe.protocol.record.value.VariableDocumentUpdateSemantic
 import io.camunda.zeebe.util.buffer.BufferUtil
 import io.camunda.zeebe.util.buffer.BufferUtil.wrapString
-import io.camunda.zeebe.util.buffer.BufferWriter
 import io.grpc.protobuf.StatusProto
 import io.grpc.stub.StreamObserver
 import org.agrona.DirectBuffer
@@ -36,7 +37,7 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 
 class GrpcToLogStreamGateway(
-    private val writer: LogStreamRecordWriter
+    private val writer: LogStreamWriter
 ) : GatewayGrpc.GatewayImplBase(), AutoCloseable {
 
     private val executor = Executors.newSingleThreadExecutor()
@@ -50,25 +51,24 @@ class GrpcToLogStreamGateway(
     private fun writeCommandWithKey(
         key: Long,
         metadata: RecordMetadata,
-        bufferWriter: BufferWriter
+        recordValue: UnifiedRecordValue
     ) {
-        writer.reset()
-
-        writer
-            .key(key)
-            .metadataWriter(metadata)
-            .valueWriter(bufferWriter)
-            .tryWrite()
+        writer.tryWrite(
+            LogAppendEntry.of(
+                key,
+                metadata,
+                recordValue
+            )
+        )
     }
 
-    private fun writeCommandWithoutKey(metadata: RecordMetadata, bufferWriter: BufferWriter) {
-        writer.reset()
-
-        writer
-            .keyNull()
-            .metadataWriter(metadata)
-            .valueWriter(bufferWriter)
-            .tryWrite()
+    private fun writeCommandWithoutKey(metadata: RecordMetadata, recordValue: UnifiedRecordValue) {
+        writer.tryWrite(
+            LogAppendEntry.of(
+                metadata,
+                recordValue
+            )
+        )
     }
 
 

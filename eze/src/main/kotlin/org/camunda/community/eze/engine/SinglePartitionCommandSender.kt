@@ -7,65 +7,68 @@
  */
 package org.camunda.community.eze.engine
 
-import io.camunda.zeebe.engine.api.InterPartitionCommandSender
-import io.camunda.zeebe.logstreams.log.LogStreamRecordWriter
+import io.camunda.zeebe.logstreams.log.LogAppendEntry
+import io.camunda.zeebe.logstreams.log.LogStreamWriter
 import io.camunda.zeebe.protocol.impl.record.RecordMetadata
+import io.camunda.zeebe.protocol.impl.record.UnifiedRecordValue
 import io.camunda.zeebe.protocol.record.RecordType
 import io.camunda.zeebe.protocol.record.ValueType
 import io.camunda.zeebe.protocol.record.intent.Intent
-import io.camunda.zeebe.util.buffer.BufferWriter
-import java.util.function.Consumer
+import io.camunda.zeebe.stream.api.InterPartitionCommandSender
+import java.util.function.Supplier
 
 class SinglePartitionCommandSender(
-    private val writerLookUp: (Int) -> LogStreamRecordWriter
+    private val writerLookUp: (Int) -> LogStreamWriter
 ) : InterPartitionCommandSender {
 
     private fun withRecordWriter(
         receiverPartitionId: Int,
-        writer: Consumer<LogStreamRecordWriter>
+        writer: Supplier<LogAppendEntry>
     ) {
         val recordWriter = writerLookUp(receiverPartitionId)
-        writer.accept(recordWriter)
-        recordWriter.tryWrite()
+        val entry = writer.get()
+        recordWriter.tryWrite(entry)
     }
 
     override fun sendCommand(
         receiverPartitionId: Int,
-        valueType: ValueType,
-        intent: Intent,
-        command: BufferWriter
+        valueType: ValueType?,
+        intent: Intent?,
+        command: UnifiedRecordValue?
     ) {
-        withRecordWriter(receiverPartitionId) { writer ->
+        withRecordWriter(receiverPartitionId) {
             val recordMetadata =
                 RecordMetadata()
                     .recordType(RecordType.COMMAND)
                     .valueType(valueType)
                     .intent(intent)
 
-            writer
-                .metadataWriter(recordMetadata)
-                .valueWriter(command)
+            LogAppendEntry.of(
+                recordMetadata,
+                command
+            )
         }
     }
 
     override fun sendCommand(
         receiverPartitionId: Int,
-        valueType: ValueType,
-        intent: Intent,
+        valueType: ValueType?,
+        intent: Intent?,
         recordKey: Long,
-        command: BufferWriter
+        command: UnifiedRecordValue?
     ) {
-        withRecordWriter(receiverPartitionId) { writer ->
+        withRecordWriter(receiverPartitionId) {
             val recordMetadata =
                 RecordMetadata()
                     .recordType(RecordType.COMMAND)
                     .valueType(valueType)
                     .intent(intent)
 
-            writer
-                .key(recordKey)
-                .metadataWriter(recordMetadata)
-                .valueWriter(command)
+            LogAppendEntry.of(
+                recordKey,
+                recordMetadata,
+                command
+            )
         }
     }
 }
