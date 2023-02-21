@@ -6,7 +6,7 @@
     <groupId>org.camunda.community</groupId>
     <artifactId>eze-root</artifactId>
     <relativePath>../pom.xml</relativePath>
-    <version>1.2.0-alpha1</version>
+    <version>1.2.0-alpha2-SNAPSHOT</version>
   </parent>
 
   <artifactId>eze-junit-extension</artifactId>
