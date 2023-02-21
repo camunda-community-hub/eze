@@ -47,6 +47,8 @@ class GrpcToLogStreamGateway(
 
     private val requestIdGenerator = AtomicLong()
 
+    private val versionInfo = getVersionInfo()
+
     private fun writeCommandWithKey(
         key: Long,
         metadata: RecordMetadata,
@@ -426,7 +428,7 @@ class GrpcToLogStreamGateway(
             .addPartitions(partition)
             .setHost("0.0.0.0")
             .setPort(26500)
-            .setVersion(javaClass.`package`.implementationVersion ?: "X.Y.Z")
+            .setVersion(versionInfo)
             .build()
 
         val topologyResponse = GatewayOuterClass.TopologyResponse
@@ -435,7 +437,7 @@ class GrpcToLogStreamGateway(
             .setClusterSize(1)
             .setPartitionsCount(1)
             .setReplicationFactor(1)
-            .setGatewayVersion(javaClass.`package`.implementationVersion ?: "A.B.C")
+            .setGatewayVersion(versionInfo)
             .build()
 
         responseObserver.onNext(topologyResponse)
@@ -492,5 +494,12 @@ class GrpcToLogStreamGateway(
         } catch (ie: InterruptedException) {
             // TODO handle
         }
+    }
+
+    private fun getVersionInfo(): String {
+        val ezeVersion = javaClass.`package`.implementationVersion ?: "dev"
+        val zeebeVersion = RecordMetadata::class.java.`package`.implementationVersion ?: "dev"
+
+        return "$ezeVersion ($zeebeVersion)"
     }
 }
