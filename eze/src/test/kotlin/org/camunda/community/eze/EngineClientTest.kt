@@ -74,13 +74,17 @@ class EngineClientTest {
         assertThat(topology.clusterSize).isEqualTo(1)
         assertThat(topology.replicationFactor).isEqualTo(1)
         assertThat(topology.partitionsCount).isEqualTo(1)
-        assertThat(topology.gatewayVersion).isEqualTo("A.B.C")
+        assertThat(topology.gatewayVersion)
+            .describedAs("Expect a version with the pattern 'dev (8.1.8)'")
+            .containsPattern("""dev \(8\.\d+\.\d+(-.*)?\)""")
 
         assertThat(topology.brokers).hasSize(1)
         val broker = topology.brokers[0]
         assertThat(broker.host).isEqualTo("0.0.0.0")
         assertThat(broker.port).isEqualTo(26500)
-        assertThat(broker.version).isEqualTo("X.Y.Z")
+        assertThat(broker.version)
+            .describedAs("Expect a version with the pattern 'dev (8.1.8)'")
+            .containsPattern("""dev \(8\.\d+\.\d+(-.*)?\)""")
 
         assertThat(broker.partitions).hasSize(1)
         val partition = broker.partitions[0]
