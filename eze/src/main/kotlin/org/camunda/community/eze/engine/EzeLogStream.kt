@@ -10,12 +10,12 @@ package org.camunda.community.eze.engine
 import io.camunda.zeebe.logstreams.log.LogRecordAwaiter
 import io.camunda.zeebe.logstreams.log.LogStream
 import io.camunda.zeebe.logstreams.log.LogStreamReader
-import io.camunda.zeebe.logstreams.log.LogStreamRecordWriter
+import io.camunda.zeebe.logstreams.log.LogStreamWriter
 
 class EzeLogStream(private val logStream: LogStream) {
 
-    fun createWriter(): LogStreamRecordWriter {
-        return logStream.newLogStreamRecordWriter().join()
+    fun createWriter(): LogStreamWriter {
+        return logStream.newLogStreamWriter().join()
     }
 
     fun createReader(): LogStreamReader {

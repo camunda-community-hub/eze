@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <artifactId>eze-root</artifactId>
@@ -11,7 +13,7 @@
     <groupId>org.camunda.community</groupId>
     <artifactId>community-hub-release-parent</artifactId>
     <version>1.4.1</version>
-    <relativePath />
+    <relativePath/>
   </parent>
 
   <modules>
@@ -44,7 +46,7 @@
     <maven.version>3.0</maven.version>
 
     <kotlin.version>1.8.10</kotlin.version>
-    <zeebe.version>8.1.8</zeebe.version>
+    <zeebe.version>8.2.0-alpha4</zeebe.version>
 
     <version.junit>5.9.2</version.junit>
 
@@ -58,7 +60,7 @@
     <assertj.version>3.24.2</assertj.version>
     <awaitility.version>4.2.0</awaitility.version>
     <log4j.version>2.19.0</log4j.version>
-    <slf4j-api.version>2.0.4</slf4j-api.version>
+    <slf4j-api.version>1.7.36</slf4j-api.version>
     <picocli.version>4.7.1</picocli.version>
 
   </properties>
@@ -155,6 +157,12 @@
         <version>${log4j.version}</version>
       </dependency>
 
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-api</artifactId>
+        <version>${slf4j-api.version}</version>
+      </dependency>
+
       <!-- Agent dependencies -->
       <dependency>
         <groupId>info.picocli</groupId>
@@ -190,7 +198,7 @@
         <version>3.2.1</version>
         <configuration>
           <rules>
-            <dependencyConvergence />
+            <dependencyConvergence/>
           </rules>
         </configuration>
         <executions>

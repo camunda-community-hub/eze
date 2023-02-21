@@ -9,9 +9,9 @@ package org.camunda.community.eze.engine
 
 import io.camunda.zeebe.logstreams.storage.LogStorage
 import io.camunda.zeebe.logstreams.storage.LogStorageReader
+import io.camunda.zeebe.util.buffer.BufferUtil
+import io.camunda.zeebe.util.buffer.BufferWriter
 import org.agrona.DirectBuffer
-import org.agrona.concurrent.UnsafeBuffer
-import java.nio.ByteBuffer
 import java.util.*
 import java.util.concurrent.ConcurrentSkipListMap
 import java.util.function.Function
@@ -37,11 +37,13 @@ class InMemoryLogStorage : LogStorage {
     override fun append(
         lowestPosition: Long,
         highestPosition: Long,
-        blockBuffer: ByteBuffer,
+        bufferWriter: BufferWriter,
         listener: LogStorage.AppendListener
     ) {
         try {
-            val entry = Entry(blockBuffer)
+            val copy: DirectBuffer = BufferUtil.createCopy(bufferWriter)
+
+            val entry = Entry(copy)
             entries.add(entry)
             val index = entries.size
             positionIndexMapping[lowestPosition] = index
@@ -54,7 +56,7 @@ class InMemoryLogStorage : LogStorage {
         }
     }
 
-    private data class Entry(val data: ByteBuffer)
+    private data class Entry(val data: DirectBuffer)
 
     private inner class ListLogStorageReader : LogStorageReader {
 
@@ -83,7 +85,7 @@ class InMemoryLogStorage : LogStorage {
             }
             val index = currentIndex
             currentIndex++
-            return UnsafeBuffer(entries[index].data)
+            return entries[index].data
         }
 
 

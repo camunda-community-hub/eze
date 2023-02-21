@@ -7,7 +7,8 @@
  */
 package org.camunda.community.eze.grpc
 
-import io.camunda.zeebe.engine.api.CommandResponseWriter
+import io.camunda.zeebe.stream.api.CommandResponseWriter
+
 
 class EzeGateway(
     private val responseWriter: GrpcResponseWriter,

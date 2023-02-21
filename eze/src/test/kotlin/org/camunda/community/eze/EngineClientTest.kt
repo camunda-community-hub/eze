@@ -1011,46 +1011,48 @@ class EngineClientTest {
                 client.newCompleteCommand(job).send()
             }
             .open()
+            .use {
+                zeebeClient
+                    .newDeployResourceCommand()
+                    .addProcessModel(
+                        Bpmn.createExecutableProcess("simpleProcess")
+                            .startEvent()
+                            .serviceTask("task") {
+                                it.zeebeJobType("jobType").multiInstance().parallel()
+                                    .zeebeInputElement("idx").zeebeInputCollection("=indexes")
+                            }
+                            .endEvent()
+                            .done(),
+                        "simpleProcess.bpmn"
+                    )
+                    .send()
+                    .join()
 
-        zeebeClient
-            .newDeployResourceCommand()
-            .addProcessModel(
-                Bpmn.createExecutableProcess("simpleProcess")
-                    .startEvent()
-                    .serviceTask("task") {
-                        it.zeebeJobType("jobType").multiInstance().parallel()
-                            .zeebeInputElement("idx").zeebeInputCollection("=indexes")
-                    }
-                    .endEvent()
-                    .done(),
-                "simpleProcess.bpmn"
-            )
-            .send()
-            .join()
-
-        // when
-        val processInstance = zeebeClient.newCreateInstanceCommand().bpmnProcessId("simpleProcess")
-            .latestVersion()
-            .variables(mapOf("indexes" to listOf(1, 2, 3)))
-            .withResult()
-            .send()
-            .join()
+                // when
+                val processInstance =
+                    zeebeClient.newCreateInstanceCommand().bpmnProcessId("simpleProcess")
+                        .latestVersion()
+                        .variables(mapOf("indexes" to listOf(1, 2, 3)))
+                        .withResult()
+                        .send()
+                        .join()
 
 
-        // then
-        await.untilAsserted {
-            val processInstanceRecord = zeebeEngine
-                .processInstanceRecords()
-                .withRecordType(events = true)
-                .withIntent(ProcessInstanceIntent.ELEMENT_COMPLETED)
-                .withElementType(BpmnElementType.PROCESS)
-                .firstOrNull()!!.value
+                // then
+                await.untilAsserted {
+                    val processInstanceRecord = zeebeEngine
+                        .processInstanceRecords()
+                        .withRecordType(events = true)
+                        .withIntent(ProcessInstanceIntent.ELEMENT_COMPLETED)
+                        .withElementType(BpmnElementType.PROCESS)
+                        .firstOrNull()!!.value
 
-            assertThat(processInstanceRecord.processDefinitionKey).isEqualTo(processInstance.processDefinitionKey)
-            assertThat(processInstanceRecord.bpmnProcessId).isEqualTo(processInstance.bpmnProcessId)
-            assertThat(processInstanceRecord.version).isEqualTo(processInstance.version)
-            assertThat(processInstanceRecord.bpmnElementType).isEqualTo(BpmnElementType.PROCESS)
-        }
+                    assertThat(processInstanceRecord.processDefinitionKey).isEqualTo(processInstance.processDefinitionKey)
+                    assertThat(processInstanceRecord.bpmnProcessId).isEqualTo(processInstance.bpmnProcessId)
+                    assertThat(processInstanceRecord.version).isEqualTo(processInstance.version)
+                    assertThat(processInstanceRecord.bpmnElementType).isEqualTo(BpmnElementType.PROCESS)
+                }
+            }
     }
 
 }

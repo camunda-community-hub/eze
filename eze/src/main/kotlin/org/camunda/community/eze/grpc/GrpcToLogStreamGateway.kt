@@ -11,9 +11,11 @@ import com.google.protobuf.GeneratedMessageV3
 import com.google.rpc.Status
 import io.camunda.zeebe.gateway.protocol.GatewayGrpc
 import io.camunda.zeebe.gateway.protocol.GatewayOuterClass
-import io.camunda.zeebe.logstreams.log.LogStreamRecordWriter
+import io.camunda.zeebe.logstreams.log.LogAppendEntry
+import io.camunda.zeebe.logstreams.log.LogStreamWriter
 import io.camunda.zeebe.protocol.impl.encoding.MsgPackConverter
 import io.camunda.zeebe.protocol.impl.record.RecordMetadata
+import io.camunda.zeebe.protocol.impl.record.UnifiedRecordValue
 import io.camunda.zeebe.protocol.impl.record.value.deployment.DeploymentRecord
 import io.camunda.zeebe.protocol.impl.record.value.incident.IncidentRecord
 import io.camunda.zeebe.protocol.impl.record.value.job.JobBatchRecord
@@ -27,7 +29,6 @@ import io.camunda.zeebe.protocol.record.intent.*
 import io.camunda.zeebe.protocol.record.value.VariableDocumentUpdateSemantic
 import io.camunda.zeebe.util.buffer.BufferUtil
 import io.camunda.zeebe.util.buffer.BufferUtil.wrapString
-import io.camunda.zeebe.util.buffer.BufferWriter
 import io.grpc.protobuf.StatusProto
 import io.grpc.stub.StreamObserver
 import org.agrona.DirectBuffer
@@ -36,7 +37,7 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 
 class GrpcToLogStreamGateway(
-    private val writer: LogStreamRecordWriter
+    private val writer: LogStreamWriter
 ) : GatewayGrpc.GatewayImplBase(), AutoCloseable {
 
     private val executor = Executors.newSingleThreadExecutor()
@@ -44,31 +45,29 @@ class GrpcToLogStreamGateway(
     private val responseObserverMap = mutableMapOf<Long, StreamObserver<*>>()
     private val responseTypeMap = mutableMapOf<Long, Class<out GeneratedMessageV3>>()
 
-    private val recordMetadata = RecordMetadata()
     private val requestIdGenerator = AtomicLong()
 
     private fun writeCommandWithKey(
         key: Long,
         metadata: RecordMetadata,
-        bufferWriter: BufferWriter
+        recordValue: UnifiedRecordValue
     ) {
-        writer.reset()
-
-        writer
-            .key(key)
-            .metadataWriter(metadata)
-            .valueWriter(bufferWriter)
-            .tryWrite()
+        writer.tryWrite(
+            LogAppendEntry.of(
+                key,
+                metadata,
+                recordValue
+            )
+        )
     }
 
-    private fun writeCommandWithoutKey(metadata: RecordMetadata, bufferWriter: BufferWriter) {
-        writer.reset()
-
-        writer
-            .keyNull()
-            .metadataWriter(metadata)
-            .valueWriter(bufferWriter)
-            .tryWrite()
+    private fun writeCommandWithoutKey(metadata: RecordMetadata, recordValue: UnifiedRecordValue) {
+        writer.tryWrite(
+            LogAppendEntry.of(
+                metadata,
+                recordValue
+            )
+        )
     }
 
 
@@ -79,7 +78,7 @@ class GrpcToLogStreamGateway(
         executor.submit {
             val requestId = registerNewRequest(responseObserver)
 
-            prepareRecordMetadata()
+            val recordMetadata = prepareRecordMetadata()
                 .requestId(requestId)
                 .valueType(ValueType.MESSAGE)
                 .intent(MessageIntent.PUBLISH)
@@ -103,7 +102,7 @@ class GrpcToLogStreamGateway(
         executor.submit {
             val requestId = registerNewRequest(responseObserver)
 
-            prepareRecordMetadata()
+            val recordMetadata = prepareRecordMetadata()
                 .requestId(requestId)
                 .valueType(ValueType.DEPLOYMENT)
                 .intent(DeploymentIntent.CREATE)
@@ -129,7 +128,7 @@ class GrpcToLogStreamGateway(
         executor.submit {
             val requestId = registerNewRequest(responseObserver)
 
-            prepareRecordMetadata()
+            val recordMetadata = prepareRecordMetadata()
                 .requestId(requestId)
                 .valueType(ValueType.DEPLOYMENT)
                 .intent(DeploymentIntent.CREATE)
@@ -155,7 +154,7 @@ class GrpcToLogStreamGateway(
         executor.submit {
             val requestId = registerNewRequest(responseObserver)
 
-            prepareRecordMetadata()
+            val recordMetadata = prepareRecordMetadata()
                 .requestId(requestId)
                 .valueType(ValueType.PROCESS_INSTANCE_CREATION)
                 .intent(ProcessInstanceCreationIntent.CREATE)
@@ -172,7 +171,7 @@ class GrpcToLogStreamGateway(
         executor.submit {
             val requestId = registerNewRequest(responseObserver)
 
-            prepareRecordMetadata()
+            val recordMetadata = prepareRecordMetadata()
                 .requestId(requestId)
                 .valueType(ValueType.PROCESS_INSTANCE_CREATION)
                 .intent(ProcessInstanceCreationIntent.CREATE_WITH_AWAITING_RESULT)
@@ -211,7 +210,7 @@ class GrpcToLogStreamGateway(
         executor.submit {
             val requestId = registerNewRequest(responseObserver)
 
-            prepareRecordMetadata()
+            val recordMetadata = prepareRecordMetadata()
                 .requestId(requestId)
                 .valueType(ValueType.PROCESS_INSTANCE)
                 .intent(ProcessInstanceIntent.CANCEL)
@@ -231,7 +230,7 @@ class GrpcToLogStreamGateway(
         executor.submit {
             val requestId = registerNewRequest(responseObserver)
 
-            prepareRecordMetadata()
+            val recordMetadata = prepareRecordMetadata()
                 .requestId(requestId)
                 .valueType(ValueType.VARIABLE_DOCUMENT)
                 .intent(VariableDocumentIntent.UPDATE)
@@ -254,7 +253,7 @@ class GrpcToLogStreamGateway(
         executor.submit {
             val requestId = registerNewRequest(responseObserver)
 
-            prepareRecordMetadata()
+            val recordMetadata = prepareRecordMetadata()
                 .requestId(requestId)
                 .valueType(ValueType.INCIDENT)
                 .intent(IncidentIntent.RESOLVE)
@@ -272,7 +271,7 @@ class GrpcToLogStreamGateway(
         executor.submit {
             val requestId = registerNewRequest(responseObserver)
 
-            prepareRecordMetadata()
+            val recordMetadata = prepareRecordMetadata()
                 .requestId(requestId)
                 .valueType(ValueType.JOB_BATCH)
                 .intent(JobBatchIntent.ACTIVATE)
@@ -295,7 +294,7 @@ class GrpcToLogStreamGateway(
         executor.submit {
             val requestId = registerNewRequest(responseObserver)
 
-            prepareRecordMetadata()
+            val recordMetadata = prepareRecordMetadata()
                 .requestId(requestId)
                 .valueType(ValueType.JOB)
                 .intent(JobIntent.COMPLETE)
@@ -314,7 +313,7 @@ class GrpcToLogStreamGateway(
         executor.submit {
             val requestId = registerNewRequest(responseObserver)
 
-            prepareRecordMetadata()
+            val recordMetadata = prepareRecordMetadata()
                 .requestId(requestId)
                 .valueType(ValueType.JOB)
                 .intent(JobIntent.FAIL)
@@ -336,7 +335,7 @@ class GrpcToLogStreamGateway(
         executor.submit {
             val requestId = registerNewRequest(responseObserver)
 
-            prepareRecordMetadata()
+            val recordMetadata = prepareRecordMetadata()
                 .requestId(requestId)
                 .valueType(ValueType.JOB)
                 .intent(JobIntent.THROW_ERROR)
@@ -357,7 +356,7 @@ class GrpcToLogStreamGateway(
         executor.submit {
             val requestId = registerNewRequest(responseObserver)
 
-            prepareRecordMetadata()
+            val recordMetadata = prepareRecordMetadata()
                 .requestId(requestId)
                 .valueType(ValueType.JOB)
                 .intent(JobIntent.UPDATE_RETRIES)
@@ -376,7 +375,7 @@ class GrpcToLogStreamGateway(
         executor.submit {
             val requestId = registerNewRequest(responseObserver)
 
-            prepareRecordMetadata()
+            val recordMetadata = prepareRecordMetadata()
                 .requestId(requestId)
                 .valueType(ValueType.PROCESS_INSTANCE_MODIFICATION)
                 .intent(ProcessInstanceModificationIntent.MODIFY)
@@ -444,7 +443,7 @@ class GrpcToLogStreamGateway(
     }
 
     private fun prepareRecordMetadata(): RecordMetadata {
-        return recordMetadata.reset()
+        return RecordMetadata()
             .recordType(RecordType.COMMAND)
             .requestStreamId(1) // partition id
     }
