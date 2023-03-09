@@ -1059,4 +1059,29 @@ class EngineClientTest {
             }
     }
 
+    @Test
+    fun `should evaluate decision`() {
+        // given
+        zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
+        zeebeClient
+            .newDeployResourceCommand()
+            .addResourceFromClasspath("rating.dmn")
+            .send()
+            .join()
+
+        // when
+        val decisionEvaluation =
+            zeebeClient.newEvaluateDecisionCommand()
+                .decisionId("decision_a")
+                .variables(mapOf("x" to 7))
+                .send()
+                .join()
+
+        // then
+        assertThat(decisionEvaluation.decisionId).isEqualTo("decision_a")
+        assertThat(decisionEvaluation.decisionName).isEqualTo("Decision A")
+        assertThat(decisionEvaluation.decisionVersion).isEqualTo(1)
+        assertThat(decisionEvaluation.decisionOutput).isEqualTo("\"A+\"")
+        assertThat(decisionEvaluation.evaluatedDecisions).hasSize(2)
+    }
 }

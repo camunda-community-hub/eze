@@ -16,6 +16,7 @@ import io.camunda.zeebe.logstreams.log.LogStreamWriter
 import io.camunda.zeebe.protocol.impl.encoding.MsgPackConverter
 import io.camunda.zeebe.protocol.impl.record.RecordMetadata
 import io.camunda.zeebe.protocol.impl.record.UnifiedRecordValue
+import io.camunda.zeebe.protocol.impl.record.value.decision.DecisionEvaluationRecord
 import io.camunda.zeebe.protocol.impl.record.value.deployment.DeploymentRecord
 import io.camunda.zeebe.protocol.impl.record.value.incident.IncidentRecord
 import io.camunda.zeebe.protocol.impl.record.value.job.JobBatchRecord
@@ -409,6 +410,29 @@ class GrpcToLogStreamGateway(
             }
 
             writeCommandWithKey(request.processInstanceKey, recordMetadata, modificationRecord)
+        }
+    }
+
+    override fun evaluateDecision(
+        request: GatewayOuterClass.EvaluateDecisionRequest,
+        responseObserver: StreamObserver<GatewayOuterClass.EvaluateDecisionResponse>
+    ) {
+        executor.submit {
+            val requestId = registerNewRequest(responseObserver)
+
+            val recordMetadata = prepareRecordMetadata()
+                .requestId(requestId)
+                .valueType(ValueType.DECISION_EVALUATION)
+                .intent(DecisionEvaluationIntent.EVALUATE)
+
+            val command = DecisionEvaluationRecord()
+
+            request.decisionKey.takeIf { it > 0 }?.let { command.decisionKey = it }
+            request.decisionId.takeIf { it.isNotEmpty() }?.let { command.decisionId = it }
+
+            setVariablesAsMessagePack(request.variables, command::setVariables)
+
+            writeCommandWithoutKey(recordMetadata, command)
         }
     }
 

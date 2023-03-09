@@ -12,6 +12,7 @@ import com.google.rpc.Code
 import com.google.rpc.Status
 import io.camunda.zeebe.gateway.protocol.GatewayOuterClass
 import io.camunda.zeebe.protocol.impl.encoding.MsgPackConverter
+import io.camunda.zeebe.protocol.impl.record.value.decision.DecisionEvaluationRecord
 import io.camunda.zeebe.protocol.impl.record.value.deployment.DeploymentRecord
 import io.camunda.zeebe.protocol.impl.record.value.incident.IncidentRecord
 import io.camunda.zeebe.protocol.impl.record.value.job.JobBatchRecord
@@ -117,6 +118,7 @@ class GrpcResponseWriter(
             }
 
             ValueType.PROCESS_INSTANCE_MODIFICATION -> createProcessInstanceModificationResponse()
+            ValueType.DECISION_EVALUATION -> createDecisionEvaluationResponse()
 
             else -> TODO("not supported command '$valueType'")
         }
@@ -312,6 +314,62 @@ class GrpcResponseWriter(
     private fun createProcessInstanceModificationResponse(): GatewayOuterClass.ModifyProcessInstanceResponse {
         return GatewayOuterClass.ModifyProcessInstanceResponse.newBuilder()
             .build()
+    }
+
+    private fun createDecisionEvaluationResponse(): GatewayOuterClass.EvaluateDecisionResponse {
+        val record = DecisionEvaluationRecord()
+        record.wrap(valueBufferView)
+
+        val builder = GatewayOuterClass.EvaluateDecisionResponse.newBuilder()
+            .setDecisionKey(record.decisionKey)
+            .setDecisionId(record.decisionId)
+            .setDecisionName(record.decisionName)
+            .setDecisionVersion(record.decisionVersion)
+            .setDecisionRequirementsId(record.decisionRequirementsId)
+            .setDecisionRequirementsKey(record.decisionRequirementsKey)
+            .setFailedDecisionId(record.failedDecisionId)
+            .setFailureMessage(record.evaluationFailureMessage)
+            .setDecisionOutput(record.decisionOutput)
+            .addAllEvaluatedDecisions(
+                record.evaluatedDecisions().map { evaluatedDecision ->
+                    GatewayOuterClass.EvaluatedDecision.newBuilder()
+                        .setDecisionKey(evaluatedDecision.decisionKey)
+                        .setDecisionId(evaluatedDecision.decisionId)
+                        .setDecisionName(evaluatedDecision.decisionName)
+                        .setDecisionVersion(evaluatedDecision.decisionVersion)
+                        .setDecisionType(evaluatedDecision.decisionType)
+                        .setDecisionOutput(evaluatedDecision.decisionOutput)
+                        .addAllEvaluatedInputs(
+                            evaluatedDecision.evaluatedInputs().map {
+                                GatewayOuterClass.EvaluatedDecisionInput.newBuilder()
+                                    .setInputId(it.inputId)
+                                    .setInputName(it.inputName)
+                                    .setInputValue(it.inputValue)
+                                    .build()
+                            }
+                        )
+                        .addAllMatchedRules(
+                            evaluatedDecision.matchedRules().map { rule ->
+                                GatewayOuterClass.MatchedDecisionRule.newBuilder()
+                                    .setRuleId(rule.ruleId)
+                                    .setRuleIndex(rule.ruleIndex)
+                                    .addAllEvaluatedOutputs(
+                                        rule.evaluatedOutputs().map {
+                                            GatewayOuterClass.EvaluatedDecisionOutput.newBuilder()
+                                                .setOutputId(it.outputId)
+                                                .setOutputName(it.outputName)
+                                                .setOutputValue(it.outputValue)
+                                                .build()
+                                        }
+                                    )
+                                    .build()
+                            }
+                        )
+                        .build()
+                }
+            )
+
+        return builder.build()
     }
 
     private fun createRejectionResponse(): Status {
