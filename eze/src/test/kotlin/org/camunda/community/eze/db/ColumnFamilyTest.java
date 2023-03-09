@@ -445,6 +445,34 @@ public final class ColumnFamilyTest {
     assertThat(columnFamily.isEmpty()).isTrue();
   }
 
+  @Test
+  public void shouldUseWhileTrueWithStartKey() {
+    // given
+    putKeyValuePair(1, 10);
+    putKeyValuePair(2, 20); // from here ---
+    putKeyValuePair(3, 30);
+    putKeyValuePair(4, 40); // to here   ---
+    putKeyValuePair(5, 50);
+
+    // when
+    key.wrapLong(2);
+
+    final List<Long> keys = new ArrayList<>();
+    final List<Long> values = new ArrayList<>();
+    columnFamily.whileTrue(
+        key,
+        (key, value) -> {
+          keys.add(key.getValue());
+          values.add(value.getValue());
+
+          return key.getValue() != 4;
+        });
+
+    // then
+    assertThat(keys).containsExactly(2L, 3L, 4L);
+    assertThat(values).containsExactly(20L, 30L, 40L);
+  }
+
   private void putKeyValuePair(final int key, final int value) {
     this.key.wrapLong(key);
     this.value.wrapLong(value);

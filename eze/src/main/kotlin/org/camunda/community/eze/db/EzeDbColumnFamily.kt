@@ -323,4 +323,24 @@ class EzeDbColumnFamily<ColumnFamilyNames : Enum<ColumnFamilyNames>,
         valueInstance!!.wrap(valueViewBuffer, 0, valueViewBuffer.capacity())
         return iteratorConsumer.visit(keyInstance, valueInstance)
     }
+
+    override fun whileTrue(startAtKey: KeyType, visitor: KeyValuePairVisitor<KeyType, ValueType>) {
+
+        columnFamilyContext.withPrefixKey(
+            startAtKey
+        ) { prefixKey: ByteArray?, prefixLength: Int ->
+            ensureInOpenTransaction(
+                context
+            ) { transaction ->
+
+                transaction.newIterator().seek(prefixKey!!, prefixLength).iterate().forEach {
+
+                    val shouldVisitNext = visit(keyInstance, valueInstance, visitor, it)
+                    if (!shouldVisitNext) {
+                        return@ensureInOpenTransaction
+                    }
+                }
+            }
+        }
+    }
 }
