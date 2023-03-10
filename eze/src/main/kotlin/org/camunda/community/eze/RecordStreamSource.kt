@@ -11,6 +11,8 @@ import io.camunda.zeebe.protocol.record.Record
 import io.camunda.zeebe.protocol.record.RecordValue
 import io.camunda.zeebe.protocol.record.ValueType
 import io.camunda.zeebe.protocol.record.value.*
+import io.camunda.zeebe.protocol.record.value.deployment.DecisionRecordValue
+import io.camunda.zeebe.protocol.record.value.deployment.DecisionRequirementsRecordValue
 import io.camunda.zeebe.protocol.record.value.deployment.Process
 import org.camunda.community.eze.records.*
 
@@ -73,6 +75,14 @@ interface RecordStreamSource {
 
     fun processMessageSubscriptionRecords(): Iterable<Record<ProcessMessageSubscriptionRecordValue>> {
         return records().ofValueType(ValueType.PROCESS_MESSAGE_SUBSCRIPTION)
+    }
+
+    fun decisionRequirementsRecords(): Iterable<Record<DecisionRequirementsRecordValue>> {
+        return records().ofValueType(ValueType.DECISION_REQUIREMENTS)
+    }
+
+    fun decisionRecords(): Iterable<Record<DecisionRecordValue>> {
+        return records().ofValueType(ValueType.DECISION)
     }
 
 }

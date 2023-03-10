@@ -16,12 +16,14 @@ import io.camunda.zeebe.logstreams.log.LogStreamWriter
 import io.camunda.zeebe.protocol.impl.encoding.MsgPackConverter
 import io.camunda.zeebe.protocol.impl.record.RecordMetadata
 import io.camunda.zeebe.protocol.impl.record.UnifiedRecordValue
+import io.camunda.zeebe.protocol.impl.record.value.decision.DecisionEvaluationRecord
 import io.camunda.zeebe.protocol.impl.record.value.deployment.DeploymentRecord
 import io.camunda.zeebe.protocol.impl.record.value.incident.IncidentRecord
 import io.camunda.zeebe.protocol.impl.record.value.job.JobBatchRecord
 import io.camunda.zeebe.protocol.impl.record.value.job.JobRecord
 import io.camunda.zeebe.protocol.impl.record.value.message.MessageRecord
 import io.camunda.zeebe.protocol.impl.record.value.processinstance.*
+import io.camunda.zeebe.protocol.impl.record.value.resource.ResourceDeletionRecord
 import io.camunda.zeebe.protocol.impl.record.value.variable.VariableDocumentRecord
 import io.camunda.zeebe.protocol.record.RecordType
 import io.camunda.zeebe.protocol.record.ValueType
@@ -409,6 +411,48 @@ class GrpcToLogStreamGateway(
             }
 
             writeCommandWithKey(request.processInstanceKey, recordMetadata, modificationRecord)
+        }
+    }
+
+    override fun evaluateDecision(
+        request: GatewayOuterClass.EvaluateDecisionRequest,
+        responseObserver: StreamObserver<GatewayOuterClass.EvaluateDecisionResponse>
+    ) {
+        executor.submit {
+            val requestId = registerNewRequest(responseObserver)
+
+            val recordMetadata = prepareRecordMetadata()
+                .requestId(requestId)
+                .valueType(ValueType.DECISION_EVALUATION)
+                .intent(DecisionEvaluationIntent.EVALUATE)
+
+            val command = DecisionEvaluationRecord()
+
+            request.decisionKey.takeIf { it > 0 }?.let { command.decisionKey = it }
+            request.decisionId.takeIf { it.isNotEmpty() }?.let { command.decisionId = it }
+
+            setVariablesAsMessagePack(request.variables, command::setVariables)
+
+            writeCommandWithoutKey(recordMetadata, command)
+        }
+    }
+
+    override fun deleteResource(
+        request: GatewayOuterClass.DeleteResourceRequest,
+        responseObserver: StreamObserver<GatewayOuterClass.DeleteResourceResponse>
+    ) {
+        executor.submit {
+            val requestId = registerNewRequest(responseObserver)
+
+            val recordMetadata = prepareRecordMetadata()
+                .requestId(requestId)
+                .valueType(ValueType.RESOURCE_DELETION)
+                .intent(ResourceDeletionIntent.DELETE)
+
+            val command = ResourceDeletionRecord()
+            command.resourceKey = request.resourceKey
+
+            writeCommandWithoutKey(recordMetadata, command)
         }
     }
 

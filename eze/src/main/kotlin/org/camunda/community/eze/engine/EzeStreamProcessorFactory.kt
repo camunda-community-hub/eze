@@ -43,6 +43,8 @@ object EzeStreamProcessorFactory {
             .actorSchedulingService(scheduler)
             .streamProcessorMode(StreamProcessorMode.PROCESSING)
             .recordProcessors(listOf(createZeebeEngine(partitionCount)))
+            // disable batch processing until https://github.com/camunda/zeebe/issues/11848 is fixed
+            .maxCommandsInBatch(1)
             .build()
 
         return EzeStreamProcessor(

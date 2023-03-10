@@ -283,6 +283,33 @@ class EzeDbColumnFamily<ColumnFamilyNames : Enum<ColumnFamilyNames>,
         valueInstance: ValueType,
         visitor: KeyValuePairVisitor<KeyType, ValueType>
     ) {
+        whileWithPrefix(
+            context = context,
+            prefix = prefix,
+            keyInstance = keyInstance,
+            valueInstance = valueInstance,
+            visitor = visitor,
+            predicate = { prefixKey, prefixLength, key ->
+                startsWith(
+                    prefixKey,
+                    0,
+                    prefixLength,
+                    key,
+                    0,
+                    key.size
+                )
+            }
+        )
+    }
+
+    private fun <KeyType : DbKey?, ValueType : DbValue?> whileWithPrefix(
+        context: TransactionContext,
+        prefix: DbKey?,
+        keyInstance: KeyType,
+        valueInstance: ValueType,
+        visitor: KeyValuePairVisitor<KeyType, ValueType>,
+        predicate: (ByteArray, Int, ByteArray) -> Boolean = { _, _, _ -> true }
+    ) {
         columnFamilyContext.withPrefixKey(
             prefix!!
         ) { prefixKey: ByteArray?, prefixLength: Int ->
@@ -293,16 +320,16 @@ class EzeDbColumnFamily<ColumnFamilyNames : Enum<ColumnFamilyNames>,
                 transaction.newIterator().seek(prefixKey!!, prefixLength).iterate().forEach {
 
                     val keyBytes = it.key.byteArray
-                    if (!startsWith(prefixKey, 0, prefixLength, keyBytes, 0, keyBytes.size)) {
+
+                    val shouldVisit = predicate.invoke(prefixKey, prefixLength, keyBytes)
+                    if (!shouldVisit) {
                         return@forEach
                     }
-                    val shouldVisitNext = visit(keyInstance, valueInstance, visitor, it)
 
+                    val shouldVisitNext = visit(keyInstance, valueInstance, visitor, it)
                     if (!shouldVisitNext) {
                         return@ensureInOpenTransaction
                     }
-
-
                 }
             }
         }
@@ -322,5 +349,15 @@ class EzeDbColumnFamily<ColumnFamilyNames : Enum<ColumnFamilyNames>,
         val valueViewBuffer: DirectBuffer = columnFamilyContext.valueView!!
         valueInstance!!.wrap(valueViewBuffer, 0, valueViewBuffer.capacity())
         return iteratorConsumer.visit(keyInstance, valueInstance)
+    }
+
+    override fun whileTrue(startAtKey: KeyType, visitor: KeyValuePairVisitor<KeyType, ValueType>) {
+        whileWithPrefix(
+            context = context,
+            prefix = startAtKey,
+            keyInstance = keyInstance,
+            valueInstance = valueInstance,
+            visitor = visitor
+        )
     }
 }
