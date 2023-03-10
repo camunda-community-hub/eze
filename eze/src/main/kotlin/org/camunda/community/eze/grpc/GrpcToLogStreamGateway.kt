@@ -23,6 +23,7 @@ import io.camunda.zeebe.protocol.impl.record.value.job.JobBatchRecord
 import io.camunda.zeebe.protocol.impl.record.value.job.JobRecord
 import io.camunda.zeebe.protocol.impl.record.value.message.MessageRecord
 import io.camunda.zeebe.protocol.impl.record.value.processinstance.*
+import io.camunda.zeebe.protocol.impl.record.value.resource.ResourceDeletionRecord
 import io.camunda.zeebe.protocol.impl.record.value.variable.VariableDocumentRecord
 import io.camunda.zeebe.protocol.record.RecordType
 import io.camunda.zeebe.protocol.record.ValueType
@@ -431,6 +432,25 @@ class GrpcToLogStreamGateway(
             request.decisionId.takeIf { it.isNotEmpty() }?.let { command.decisionId = it }
 
             setVariablesAsMessagePack(request.variables, command::setVariables)
+
+            writeCommandWithoutKey(recordMetadata, command)
+        }
+    }
+
+    override fun deleteResource(
+        request: GatewayOuterClass.DeleteResourceRequest,
+        responseObserver: StreamObserver<GatewayOuterClass.DeleteResourceResponse>
+    ) {
+        executor.submit {
+            val requestId = registerNewRequest(responseObserver)
+
+            val recordMetadata = prepareRecordMetadata()
+                .requestId(requestId)
+                .valueType(ValueType.RESOURCE_DELETION)
+                .intent(ResourceDeletionIntent.DELETE)
+
+            val command = ResourceDeletionRecord()
+            command.resourceKey = request.resourceKey
 
             writeCommandWithoutKey(recordMetadata, command)
         }

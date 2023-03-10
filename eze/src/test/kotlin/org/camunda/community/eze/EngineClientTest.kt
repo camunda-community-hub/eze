@@ -14,10 +14,7 @@ import io.camunda.zeebe.client.api.response.PartitionBrokerHealth
 import io.camunda.zeebe.client.api.response.PartitionBrokerRole
 import io.camunda.zeebe.client.api.worker.JobClient
 import io.camunda.zeebe.model.bpmn.Bpmn
-import io.camunda.zeebe.protocol.record.intent.Intent
-import io.camunda.zeebe.protocol.record.intent.JobIntent
-import io.camunda.zeebe.protocol.record.intent.ProcessInstanceIntent
-import io.camunda.zeebe.protocol.record.intent.TimerIntent
+import io.camunda.zeebe.protocol.record.intent.*
 import io.camunda.zeebe.protocol.record.value.BpmnElementType
 import io.camunda.zeebe.protocol.record.value.ProcessInstanceRecordValue
 import io.camunda.zeebe.protocol.record.value.VariableRecordValue
@@ -1083,5 +1080,35 @@ class EngineClientTest {
         assertThat(decisionEvaluation.decisionVersion).isEqualTo(1)
         assertThat(decisionEvaluation.decisionOutput).isEqualTo("\"A+\"")
         assertThat(decisionEvaluation.evaluatedDecisions).hasSize(2)
+    }
+
+    @Test
+    fun `should delete resources`() {
+        // given
+        zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
+        val deployment = zeebeClient
+            .newDeployResourceCommand()
+            .addResourceFromClasspath("rating.dmn")
+            .send()
+            .join()
+
+        val drg = deployment.decisionRequirements.first()
+        assertThat(drg).isNotNull
+
+        // when
+        zeebeClient
+            .newDeleteResourceCommand(drg.decisionRequirementsKey)
+            .send()
+            .join()
+
+        // then
+        await.untilAsserted {
+            val drgDeleted =
+                zeebeEngine.decisionRequirementsRecords()
+                    .withIntent(DecisionRequirementsIntent.DELETED).first()
+
+            assertThat(drgDeleted).isNotNull
+            assertThat(drgDeleted.value.decisionRequirementsKey).isEqualTo(drg.decisionRequirementsKey)
+        }
     }
 }

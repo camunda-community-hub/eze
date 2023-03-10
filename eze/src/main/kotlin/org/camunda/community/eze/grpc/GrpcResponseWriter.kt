@@ -119,6 +119,7 @@ class GrpcResponseWriter(
 
             ValueType.PROCESS_INSTANCE_MODIFICATION -> createProcessInstanceModificationResponse()
             ValueType.DECISION_EVALUATION -> createDecisionEvaluationResponse()
+            ValueType.RESOURCE_DELETION -> createDeleteResourceResponse()
 
             else -> TODO("not supported command '$valueType'")
         }
@@ -370,6 +371,11 @@ class GrpcResponseWriter(
             )
 
         return builder.build()
+    }
+
+    private fun createDeleteResourceResponse(): GatewayOuterClass.DeleteResourceResponse {
+        return GatewayOuterClass.DeleteResourceResponse.newBuilder()
+            .build()
     }
 
     private fun createRejectionResponse(): Status {
