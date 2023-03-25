@@ -9,9 +9,10 @@ package org.camunda.community.eze.engine
 
 import io.camunda.zeebe.db.ZeebeDb
 import io.camunda.zeebe.engine.Engine
+import io.camunda.zeebe.engine.EngineConfiguration
 import io.camunda.zeebe.engine.processing.EngineProcessors
-import io.camunda.zeebe.engine.processing.deployment.distribute.DeploymentDistributionCommandSender
 import io.camunda.zeebe.engine.processing.message.command.SubscriptionCommandSender
+import io.camunda.zeebe.engine.processing.streamprocessor.JobStreamer
 import io.camunda.zeebe.engine.processing.streamprocessor.TypedRecordProcessorContext
 import io.camunda.zeebe.engine.processing.streamprocessor.TypedRecordProcessors
 import io.camunda.zeebe.protocol.ZbColumnFamilies
@@ -64,7 +65,7 @@ object EzeStreamProcessorFactory {
     }
 
     private fun createZeebeEngine(partitionCount: Int): Engine {
-        return Engine(createRecordProcessorsFactory(partitionCount))
+        return Engine(createRecordProcessorsFactory(partitionCount), EngineConfiguration())
     }
 
     private fun createRecordProcessorsFactory(partitionCount: Int): ((TypedRecordProcessorContext) -> TypedRecordProcessors) {
@@ -76,14 +77,9 @@ object EzeStreamProcessorFactory {
                     context.partitionId,
                     context.partitionCommandSender
                 ),
-                DeploymentDistributionCommandSender(
-                    context.partitionId,
-                    context.partitionCommandSender
-                ),
-                { jobType ->
-                    // new job is available
-                },
-                FeatureFlags.createDefault()
+                context.partitionCommandSender,
+                FeatureFlags.createDefault(),
+                JobStreamer.noop()
             )
         }
     }
