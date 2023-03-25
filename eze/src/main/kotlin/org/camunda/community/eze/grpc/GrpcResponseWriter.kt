@@ -92,12 +92,11 @@ class GrpcResponseWriter(
         return this
     }
 
-    override fun tryWriteResponse(requestStreamId: Int, requestId: Long): Boolean {
+    override fun tryWriteResponse(requestStreamId: Int, requestId: Long) {
 
         if (rejectionType != RejectionType.NULL_VAL) {
             val rejectionResponse = createRejectionResponse()
             errorCallback(requestId, rejectionResponse)
-            return true
         }
 
         val response: GeneratedMessageV3 = when (valueType) {
@@ -120,12 +119,18 @@ class GrpcResponseWriter(
             ValueType.PROCESS_INSTANCE_MODIFICATION -> createProcessInstanceModificationResponse()
             ValueType.DECISION_EVALUATION -> createDecisionEvaluationResponse()
             ValueType.RESOURCE_DELETION -> createDeleteResourceResponse()
+            ValueType.SIGNAL -> createSignalResponse()
 
             else -> TODO("not supported command '$valueType'")
         }
 
         responseCallback(requestId, response)
-        return true
+    }
+
+    private fun createSignalResponse(): GatewayOuterClass.BroadcastSignalResponse {
+        return GatewayOuterClass.BroadcastSignalResponse
+            .newBuilder()
+            .setKey(key).build()
     }
 
     private fun createResolveIncidentResponse(): GatewayOuterClass.ResolveIncidentResponse {
