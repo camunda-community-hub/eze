@@ -1113,4 +1113,69 @@ class EngineClientTest {
             assertThat(drgDeleted.value.decisionRequirementsKey).isEqualTo(drg.decisionRequirementsKey)
         }
     }*/
+
+    @Test
+    fun `should broadcast signal`() {
+        // given
+        zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
+
+        zeebeClient.newDeployResourceCommand()
+            .addProcessModel(
+                Bpmn.createExecutableProcess("process")
+                    .startEvent()
+                    .signal("top-level-start-signal")
+                    .endEvent()
+                    .done(), "process.bpmn"
+            )
+            .send()
+            .join()
+
+        // when
+        zeebeClient
+            .newBroadcastSignalCommand()
+            .signalName("top-level-start-signal")
+            .variables(mapOf("signal" to "broadCasted"))
+            .send()
+            .join()
+
+        // then
+        val signalSubscriptionRecord = zeebeEngine
+            .signalSubscriptionRecords()
+            .withIntent(SignalSubscriptionIntent.CREATED)
+            .firstOrNull()
+
+        assertThat(signalSubscriptionRecord)
+            .describedAs("When deploy a process with top-level signal start event a signal subscription record is created")
+            .isNotNull
+        if (signalSubscriptionRecord != null) {
+            assertThat(signalSubscriptionRecord.value.signalName).isEqualTo("top-level-start-signal")
+        }
+
+        val signalRecord = zeebeEngine
+            .signalRecords()
+            .withIntent(SignalIntent.BROADCASTED)
+            .firstOrNull()
+
+        assertThat(signalRecord)
+            .describedAs("The Signal is broadcasted well")
+            .isNotNull
+
+        if (signalRecord != null) {
+            assertThat(signalRecord.value.signalName).isEqualTo("top-level-start-signal")
+            assertThat(signalRecord.value.variables)
+                .describedAs("The signal broadcast command can has variables")
+                .containsEntry("signal", "broadCasted")
+        }
+
+        val processInstance = zeebeEngine
+            .processInstanceRecords()
+            .withIntent(ProcessInstanceIntent.ELEMENT_COMPLETED)
+            .withElementType(BpmnElementType.PROCESS)
+            .firstOrNull()
+
+        assertThat(processInstance)
+            .describedAs("The top-level signal start event can be triggered by signal broadcast command")
+            .isNotNull
+
+    }
 }
