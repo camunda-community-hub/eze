@@ -24,6 +24,7 @@ import io.camunda.zeebe.protocol.impl.record.value.job.JobRecord
 import io.camunda.zeebe.protocol.impl.record.value.message.MessageRecord
 import io.camunda.zeebe.protocol.impl.record.value.processinstance.*
 import io.camunda.zeebe.protocol.impl.record.value.resource.ResourceDeletionRecord
+import io.camunda.zeebe.protocol.impl.record.value.signal.SignalRecord
 import io.camunda.zeebe.protocol.impl.record.value.variable.VariableDocumentRecord
 import io.camunda.zeebe.protocol.record.RecordType
 import io.camunda.zeebe.protocol.record.ValueType
@@ -453,6 +454,27 @@ class GrpcToLogStreamGateway(
             command.resourceKey = request.resourceKey
 
             writeCommandWithoutKey(recordMetadata, command)
+        }
+    }
+
+    override fun broadcastSignal(
+        signalRequest: GatewayOuterClass.BroadcastSignalRequest,
+        responseObserver: StreamObserver<GatewayOuterClass.BroadcastSignalResponse>
+    ) {
+        executor.submit {
+            val requestId = registerNewRequest(responseObserver)
+
+            val recordMetadata = prepareRecordMetadata()
+                .requestId(requestId)
+                .valueType(ValueType.SIGNAL)
+                .intent(SignalIntent.BROADCAST)
+
+            val signalRecord = SignalRecord()
+
+            signalRecord.signalName = signalRequest.signalName
+            setVariablesAsMessagePack(signalRequest.variables, signalRecord::setVariables)
+
+            writeCommandWithoutKey(recordMetadata, signalRecord)
         }
     }
 
