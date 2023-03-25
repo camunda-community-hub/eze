@@ -1082,6 +1082,8 @@ class EngineClientTest {
         assertThat(decisionEvaluation.evaluatedDecisions).hasSize(2)
     }
 
+    // Disable delete resource https://github.com/camunda/zeebe/pull/12111
+    /*
     @Test
     fun `should delete resources`() {
         // given
@@ -1110,5 +1112,5 @@ class EngineClientTest {
             assertThat(drgDeleted).isNotNull
             assertThat(drgDeleted.value.decisionRequirementsKey).isEqualTo(drg.decisionRequirementsKey)
         }
-    }
+    }*/
 }
