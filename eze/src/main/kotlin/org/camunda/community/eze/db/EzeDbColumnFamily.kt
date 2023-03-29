@@ -351,13 +351,15 @@ class EzeDbColumnFamily<ColumnFamilyNames : Enum<ColumnFamilyNames>,
         return iteratorConsumer.visit(keyInstance, valueInstance)
     }
 
-    override fun whileTrue(startAtKey: KeyType, visitor: KeyValuePairVisitor<KeyType, ValueType>) {
-        whileWithPrefix(
-            context = context,
-            prefix = startAtKey,
-            keyInstance = keyInstance,
-            valueInstance = valueInstance,
-            visitor = visitor
-        )
+    override fun whileTrue(startAtKey: KeyType?, visitor: KeyValuePairVisitor<KeyType, ValueType>) {
+        startAtKey?.let {
+            whileWithPrefix(
+                context = context,
+                prefix = it,
+                keyInstance = keyInstance,
+                valueInstance = valueInstance,
+                visitor = visitor
+            )
+        } ?: whileTrue(visitor)
     }
 }
