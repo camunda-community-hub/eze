@@ -85,4 +85,12 @@ interface RecordStreamSource {
         return records().ofValueType(ValueType.DECISION)
     }
 
+    fun signalRecords(): Iterable<Record<SignalRecordValue>> {
+        return records().ofValueType(ValueType.SIGNAL)
+    }
+
+    fun signalSubscriptionRecords(): Iterable<Record<SignalSubscriptionRecordValue>> {
+        return records().ofValueType(ValueType.SIGNAL_SUBSCRIPTION)
+    }
+
 }

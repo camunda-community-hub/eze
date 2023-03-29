@@ -31,6 +31,7 @@ import org.camunda.community.eze.RecordStream.withProcessInstanceKey
 import org.camunda.community.eze.RecordStream.withRecordType
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import java.time.Duration
@@ -1082,6 +1083,8 @@ class EngineClientTest {
         assertThat(decisionEvaluation.evaluatedDecisions).hasSize(2)
     }
 
+    // Disable delete resource https://github.com/camunda/zeebe/pull/12111
+    @Disabled
     @Test
     fun `should delete resources`() {
         // given
@@ -1110,5 +1113,44 @@ class EngineClientTest {
             assertThat(drgDeleted).isNotNull
             assertThat(drgDeleted.value.decisionRequirementsKey).isEqualTo(drg.decisionRequirementsKey)
         }
+    }
+
+    @Test
+    fun `should broadcast signal`() {
+        // given
+        zeebeClient = ZeebeClient.newClientBuilder().usePlaintext().build()
+
+        zeebeClient.newDeployResourceCommand()
+            .addProcessModel(
+                Bpmn.createExecutableProcess("process")
+                    .startEvent()
+                    .signal("top-level-start-signal")
+                    .endEvent()
+                    .done(), "process.bpmn"
+            )
+            .send()
+            .join()
+
+        // when
+        zeebeClient
+            .newBroadcastSignalCommand()
+            .signalName("top-level-start-signal")
+            .variables(mapOf("signal" to "broadCasted"))
+            .send()
+            .join()
+
+        // then
+        await.untilAsserted {
+            val processInstance = zeebeEngine
+                .processInstanceRecords()
+                .withIntent(ProcessInstanceIntent.ELEMENT_COMPLETED)
+                .withElementType(BpmnElementType.PROCESS)
+                .firstOrNull()
+
+            assertThat(processInstance)
+                .describedAs("The top-level signal start event can be triggered by signal broadcast command")
+                .isNotNull
+        }
+
     }
 }
