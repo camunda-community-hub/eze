@@ -59,7 +59,7 @@
     <awaitility.version>4.2.0</awaitility.version>
     <log4j.version>2.20.0</log4j.version>
     <slf4j-api.version>1.7.36</slf4j-api.version>
-    <picocli.version>4.7.4</picocli.version>
+    <picocli.version>4.7.5</picocli.version>
 
   </properties>
 
