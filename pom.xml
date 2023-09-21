@@ -53,7 +53,7 @@
     <plugin.version.jacoco>0.8.10</plugin.version.jacoco>
     <plugin.version.fmt>2.13</plugin.version.fmt>
     <plugin.version.license>4.2</plugin.version.license>
-    <plugin.version.jib>3.3.2</plugin.version.jib>
+    <plugin.version.jib>3.4.0</plugin.version.jib>
 
     <assertj.version>3.24.2</assertj.version>
     <awaitility.version>4.2.0</awaitility.version>
