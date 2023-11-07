@@ -48,7 +48,7 @@
 
     <version.junit>5.10.1</version.junit>
 
-    <plugin.version.surefire>3.2.1</plugin.version.surefire>
+    <plugin.version.surefire>3.2.2</plugin.version.surefire>
     <plugin.version.javadoc>3.6.2</plugin.version.javadoc>
     <plugin.version.jacoco>0.8.11</plugin.version.jacoco>
     <plugin.version.fmt>2.13</plugin.version.fmt>
