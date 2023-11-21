@@ -15,7 +15,7 @@ jobs:
   build:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Cache
         uses: actions/cache@v3
         with:
@@ -84,7 +84,7 @@ jobs:
       checks: read
       pull-requests: write
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - id: metadata
         name: Fetch dependency metadata
         uses: dependabot/fetch-metadata@v1.3.6
