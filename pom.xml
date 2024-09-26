@@ -57,7 +57,7 @@
 
     <assertj.version>3.26.3</assertj.version>
     <awaitility.version>4.2.2</awaitility.version>
-    <log4j.version>2.23.1</log4j.version>
+    <log4j.version>2.24.0</log4j.version>
     <slf4j-api.version>2.0.9</slf4j-api.version>
     <picocli.version>4.7.6</picocli.version>
 
