@@ -1,8 +1,13 @@
-[![Community badge: Incubating](https://img.shields.io/badge/Lifecycle-Incubating-blue)](https://github.com/Camunda-Community-Hub/community/blob/main/extension-lifecycle.md#incubating-)
+# Embedded Zeebe engine
+
+[![](https://img.shields.io/badge/Lifecycle-Unmaintained-lightgrey)](https://github.com/Camunda-Community-Hub/community/blob/main/extension-lifecycle.md#Unmaintained-)
 [![Community extension badge](https://img.shields.io/badge/Community%20Extension-An%20open%20source%20community%20maintained%20project-FF4700)](https://github.com/camunda-community-hub/community)
 ![Compatible with: Camunda Platform 8](https://img.shields.io/badge/Compatible%20with-Camunda%20Platform%208-0072Ce)
 
-# Embedded Zeebe engine
+> [!IMPORTANT]
+> This community extension is **unmaintained** and outdated. It doesn't support new Camunda versions.
+>
+> Thank you to all [contributors](https://github.com/camunda-community-hub/eze/graphs/contributors) for making it a great extension. :tada:
 
 A lightweight version of [Zeebe](https://github.com/camunda-cloud/zeebe) from [Camunda](https://camunda.com). It bundles Zeebe's workflow engine including some required parts to a library that can be used by other projects. Some parts of Zeebe, like clustering, are not included or are replaced with simpler implementations, for example with an In-Memory database.   
 
