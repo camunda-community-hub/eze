@@ -55,7 +55,7 @@
     <plugin.version.license>4.6</plugin.version.license>
     <plugin.version.jib>3.4.4</plugin.version.jib>
 
-    <assertj.version>3.26.3</assertj.version>
+    <assertj.version>3.27.7</assertj.version>
     <awaitility.version>4.2.2</awaitility.version>
     <log4j.version>2.24.1</log4j.version>
     <slf4j-api.version>2.0.9</slf4j-api.version>
