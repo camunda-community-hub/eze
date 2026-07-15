@@ -7,7 +7,7 @@
  */
 package org.camunda.community.eze.grpc
 
-import com.google.protobuf.GeneratedMessageV3
+import com.google.protobuf.GeneratedMessage
 import com.google.rpc.Code
 import com.google.rpc.Status
 import io.camunda.zeebe.gateway.protocol.GatewayOuterClass
@@ -33,9 +33,9 @@ import org.agrona.MutableDirectBuffer
 import org.agrona.concurrent.UnsafeBuffer
 
 class GrpcResponseWriter(
-    val responseCallback: (requestId: Long, response: GeneratedMessageV3) -> Unit,
+    val responseCallback: (requestId: Long, response: GeneratedMessage) -> Unit,
     val errorCallback: (requestId: Long, error: Status) -> Unit,
-    val expectedResponse: (requestId: Long) -> Class<out GeneratedMessageV3>?
+    val expectedResponse: (requestId: Long) -> Class<out GeneratedMessage>?
 ) :
     CommandResponseWriter {
 
@@ -67,7 +67,7 @@ class GrpcResponseWriter(
     }
 
     override fun recordType(type: RecordType): CommandResponseWriter {
-        this.recordType = recordType
+        this.recordType = type
         return this
     }
 
@@ -99,7 +99,7 @@ class GrpcResponseWriter(
             errorCallback(requestId, rejectionResponse)
         }
 
-        val response: GeneratedMessageV3 = when (valueType) {
+        val response: GeneratedMessage = when (valueType) {
             ValueType.DEPLOYMENT -> createDeployResponse(requestId)
             ValueType.PROCESS_INSTANCE_CREATION -> createProcessInstanceResponse()
             ValueType.PROCESS_INSTANCE_RESULT -> createProcessInstanceWithResultResponse()

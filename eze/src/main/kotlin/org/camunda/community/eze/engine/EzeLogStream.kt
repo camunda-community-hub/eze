@@ -15,11 +15,11 @@ import io.camunda.zeebe.logstreams.log.LogStreamWriter
 class EzeLogStream(private val logStream: LogStream) {
 
     fun createWriter(): LogStreamWriter {
-        return logStream.newLogStreamWriter().join()
+        return logStream.newLogStreamWriter()
     }
 
     fun createReader(): LogStreamReader {
-        return logStream.newLogStreamReader().join()
+        return logStream.newLogStreamReader()
     }
 
     fun getZeebeLogStream(): LogStream = logStream

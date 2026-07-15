@@ -13,9 +13,12 @@ import io.camunda.zeebe.exporter.api.context.Context
 import io.camunda.zeebe.exporter.api.context.Controller
 import io.camunda.zeebe.exporter.api.context.ScheduledTask
 import io.camunda.zeebe.protocol.record.Record
+import io.micrometer.core.instrument.MeterRegistry
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.time.Duration
+import java.time.InstantSource
 import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -26,6 +29,7 @@ class ExporterRunner(
 ) : AutoCloseable {
 
     private val controller = ExporterController()
+    private val meterRegistry = SimpleMeterRegistry()
 
     private val exporters: Map<Exporter, ExporterContext> =
         exporters.associateWith { ExporterContext(it) }
@@ -67,6 +71,18 @@ class ExporterRunner(
             return LoggerFactory.getLogger(exporter::class.java)
         }
 
+        override fun getMeterRegistry(): MeterRegistry {
+            return meterRegistry
+        }
+
+        override fun clock(): InstantSource {
+            return InstantSource.system()
+        }
+
+        override fun getPartitionId(): Int {
+            return 1
+        }
+
         override fun getConfiguration(): Configuration {
             return ExporterConfiguration(exporter)
         }
@@ -93,13 +109,18 @@ class ExporterRunner(
     inner class ExporterController : Controller, AutoCloseable {
 
         val executor = Executors.newSingleThreadScheduledExecutor()
+        private var lastExportedRecordPosition = -1L
 
         override fun updateLastExportedRecordPosition(position: Long) {
-            // currently, not needed
+            lastExportedRecordPosition = position
         }
 
         override fun updateLastExportedRecordPosition(position: Long, metadata: ByteArray?) {
-            // currently, not needed
+            lastExportedRecordPosition = position
+        }
+
+        override fun getLastExportedRecordPosition(): Long {
+            return lastExportedRecordPosition
         }
 
         override fun readMetadata(): Optional<ByteArray> {

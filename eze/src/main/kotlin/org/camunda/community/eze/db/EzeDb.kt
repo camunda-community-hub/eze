@@ -9,12 +9,18 @@ package org.camunda.community.eze.db
 
 import io.camunda.zeebe.db.*
 import io.camunda.zeebe.db.impl.DbNil
+import io.camunda.zeebe.protocol.EnumValue
+import io.micrometer.core.instrument.MeterRegistry
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import java.io.File
 import java.util.*
 
-class EzeDb<ColumnFamilyType : Enum<ColumnFamilyType>> : ZeebeDb<ColumnFamilyType> {
+class EzeDb<ColumnFamilyType> : ZeebeDb<ColumnFamilyType>
+        where ColumnFamilyType : Enum<ColumnFamilyType>,
+              ColumnFamilyType : EnumValue {
 
     private val database = TreeMap<Bytes, Bytes>()
+    private val meterRegistry = SimpleMeterRegistry()
 
     override fun close() {
         database.clear()
@@ -43,5 +49,9 @@ class EzeDb<ColumnFamilyType : Enum<ColumnFamilyType>> : ZeebeDb<ColumnFamilyTyp
 
     override fun isEmpty(column: ColumnFamilyType, context: TransactionContext): Boolean {
         return createColumnFamily(column, context, DbNullKey.INSTANCE, DbNil.INSTANCE).isEmpty
+    }
+
+    override fun getMeterRegistry(): MeterRegistry {
+        return meterRegistry
     }
 }

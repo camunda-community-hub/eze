@@ -9,6 +9,8 @@ package org.camunda.community.eze.engine
 
 import io.camunda.zeebe.logstreams.log.LogAppendEntry
 import io.camunda.zeebe.logstreams.log.LogStreamWriter
+import io.camunda.zeebe.logstreams.log.WriteContext
+import io.camunda.zeebe.protocol.impl.encoding.AuthInfo
 import io.camunda.zeebe.protocol.impl.record.RecordMetadata
 import io.camunda.zeebe.protocol.impl.record.UnifiedRecordValue
 import io.camunda.zeebe.protocol.record.RecordType
@@ -27,14 +29,16 @@ class SinglePartitionCommandSender(
     ) {
         val recordWriter = writerLookUp(receiverPartitionId)
         val entry = writer.get()
-        recordWriter.tryWrite(entry)
+        recordWriter.tryWrite(WriteContext.interPartition(), entry)
     }
 
     override fun sendCommand(
         receiverPartitionId: Int,
         valueType: ValueType?,
         intent: Intent?,
-        command: UnifiedRecordValue?
+        recordKey: Long?,
+        command: UnifiedRecordValue?,
+        authorization: AuthInfo?
     ) {
         withRecordWriter(receiverPartitionId) {
             val recordMetadata =
@@ -43,32 +47,8 @@ class SinglePartitionCommandSender(
                     .valueType(valueType)
                     .intent(intent)
 
-            LogAppendEntry.of(
-                recordMetadata,
-                command
-            )
-        }
-    }
-
-    override fun sendCommand(
-        receiverPartitionId: Int,
-        valueType: ValueType?,
-        intent: Intent?,
-        recordKey: Long,
-        command: UnifiedRecordValue?
-    ) {
-        withRecordWriter(receiverPartitionId) {
-            val recordMetadata =
-                RecordMetadata()
-                    .recordType(RecordType.COMMAND)
-                    .valueType(valueType)
-                    .intent(intent)
-
-            LogAppendEntry.of(
-                recordKey,
-                recordMetadata,
-                command
-            )
+            recordKey?.let { LogAppendEntry.of(it, recordMetadata, command) }
+                ?: LogAppendEntry.of(recordMetadata, command)
         }
     }
 }

@@ -16,6 +16,7 @@ class ZeebeEngineClockImpl(val clock: ControlledActorClock) : ZeebeEngineClock {
 
     override fun increaseTime(timeToAdd: Duration) {
         clock.addTime(timeToAdd)
+        clock.update()
     }
 
     override fun getCurrentTime(): Instant {

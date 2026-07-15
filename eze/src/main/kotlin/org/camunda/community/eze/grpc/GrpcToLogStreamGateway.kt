@@ -7,12 +7,13 @@
  */
 package org.camunda.community.eze.grpc
 
-import com.google.protobuf.GeneratedMessageV3
+import com.google.protobuf.GeneratedMessage
 import com.google.rpc.Status
 import io.camunda.zeebe.gateway.protocol.GatewayGrpc
 import io.camunda.zeebe.gateway.protocol.GatewayOuterClass
 import io.camunda.zeebe.logstreams.log.LogAppendEntry
 import io.camunda.zeebe.logstreams.log.LogStreamWriter
+import io.camunda.zeebe.logstreams.log.WriteContext
 import io.camunda.zeebe.protocol.impl.encoding.MsgPackConverter
 import io.camunda.zeebe.protocol.impl.record.RecordMetadata
 import io.camunda.zeebe.protocol.impl.record.UnifiedRecordValue
@@ -33,8 +34,10 @@ import io.camunda.zeebe.protocol.record.value.VariableDocumentUpdateSemantic
 import io.camunda.zeebe.util.buffer.BufferUtil
 import io.camunda.zeebe.util.buffer.BufferUtil.wrapString
 import io.grpc.protobuf.StatusProto
+import io.grpc.Status as GrpcStatus
 import io.grpc.stub.StreamObserver
 import org.agrona.DirectBuffer
+import org.slf4j.LoggerFactory
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
@@ -43,10 +46,12 @@ class GrpcToLogStreamGateway(
     private val writer: LogStreamWriter
 ) : GatewayGrpc.GatewayImplBase(), AutoCloseable {
 
+    private val logger = LoggerFactory.getLogger(GrpcToLogStreamGateway::class.java)
+
     private val executor = Executors.newSingleThreadExecutor()
 
     private val responseObserverMap = mutableMapOf<Long, StreamObserver<*>>()
-    private val responseTypeMap = mutableMapOf<Long, Class<out GeneratedMessageV3>>()
+    private val responseTypeMap = mutableMapOf<Long, Class<out GeneratedMessage>>()
 
     private val requestIdGenerator = AtomicLong()
 
@@ -58,6 +63,7 @@ class GrpcToLogStreamGateway(
         recordValue: UnifiedRecordValue
     ) {
         writer.tryWrite(
+            WriteContext.userCommand(metadata.intent),
             LogAppendEntry.of(
                 key,
                 metadata,
@@ -68,6 +74,7 @@ class GrpcToLogStreamGateway(
 
     private fun writeCommandWithoutKey(metadata: RecordMetadata, recordValue: UnifiedRecordValue) {
         writer.tryWrite(
+            WriteContext.userCommand(metadata.intent),
             LogAppendEntry.of(
                 metadata,
                 recordValue
@@ -104,7 +111,7 @@ class GrpcToLogStreamGateway(
         request: GatewayOuterClass.DeployProcessRequest,
         responseObserver: StreamObserver<GatewayOuterClass.DeployProcessResponse>
     ) {
-        executor.submit {
+        submit(responseObserver) {
             val requestId = registerNewRequest(responseObserver)
 
             val recordMetadata = prepareRecordMetadata()
@@ -130,7 +137,7 @@ class GrpcToLogStreamGateway(
         request: GatewayOuterClass.DeployResourceRequest,
         responseObserver: StreamObserver<GatewayOuterClass.DeployResourceResponse>
     ) {
-        executor.submit {
+        submit(responseObserver) {
             val requestId = registerNewRequest(responseObserver)
 
             val recordMetadata = prepareRecordMetadata()
@@ -149,6 +156,22 @@ class GrpcToLogStreamGateway(
             }
 
             writeCommandWithoutKey(recordMetadata, deploymentRecord)
+        }
+    }
+
+    private fun <T> submit(responseObserver: StreamObserver<T>, block: () -> Unit) {
+        executor.submit {
+            try {
+                block()
+            } catch (e: Throwable) {
+                logger.error("Failed to handle gRPC gateway request", e)
+                responseObserver.onError(
+                    GrpcStatus.INTERNAL
+                        .withDescription(e.message)
+                        .withCause(e)
+                        .asRuntimeException()
+                )
+            }
         }
     }
 
@@ -523,7 +546,7 @@ class GrpcToLogStreamGateway(
             ?.let(setter)
     }
 
-    private inline fun <reified T : GeneratedMessageV3> registerNewRequest(
+    private inline fun <reified T : GeneratedMessage> registerNewRequest(
         responseObserver: StreamObserver<T>
     ): Long {
         val currentRequestId = requestIdGenerator.incrementAndGet()
@@ -532,10 +555,10 @@ class GrpcToLogStreamGateway(
         return currentRequestId
     }
 
-    fun responseCallback(requestId: Long, response: GeneratedMessageV3) {
+    fun responseCallback(requestId: Long, response: GeneratedMessage) {
         executor.submit {
             val streamObserver =
-                responseObserverMap.remove(requestId) as StreamObserver<GeneratedMessageV3>
+                responseObserverMap.remove(requestId) as StreamObserver<GeneratedMessage>
             streamObserver.onNext(response)
             streamObserver.onCompleted()
         }
@@ -544,12 +567,12 @@ class GrpcToLogStreamGateway(
     fun errorCallback(requestId: Long, error: Status) {
         executor.submit {
             val streamObserver =
-                responseObserverMap.remove(requestId) as StreamObserver<GeneratedMessageV3>
+                responseObserverMap.remove(requestId) as StreamObserver<GeneratedMessage>
             streamObserver.onError(StatusProto.toStatusException(error))
         }
     }
 
-    fun getExpectedResponseType(requestId: Long): Class<out GeneratedMessageV3>? {
+    fun getExpectedResponseType(requestId: Long): Class<out GeneratedMessage>? {
         return responseTypeMap[requestId]
     }
 

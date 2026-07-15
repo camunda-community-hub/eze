@@ -8,11 +8,14 @@
 package org.camunda.community.eze.db
 
 import io.camunda.zeebe.db.ZeebeDbFactory
+import io.camunda.zeebe.protocol.EnumValue
 import org.camunda.community.eze.db.EzeDbFactory.Companion.newFactory
 
 object EzeZeebeDbFactory {
     @JvmStatic
-    fun <ColumnFamilyType : Enum<ColumnFamilyType>> getDefaultFactory(): ZeebeDbFactory<ColumnFamilyType> {
+    fun <ColumnFamilyType> getDefaultFactory(): ZeebeDbFactory<ColumnFamilyType>
+            where ColumnFamilyType : Enum<ColumnFamilyType>,
+                  ColumnFamilyType : EnumValue {
         return newFactory()
     }
 }

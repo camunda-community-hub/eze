@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <artifactId>eze-root</artifactId>
-  <version>1.2.1-SNAPSHOT</version>
+  <version>2.0.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>EZE Root</name>
 
@@ -41,25 +41,27 @@
 
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <version.java>17</version.java>
-    <maven.version>3.0</maven.version>
+    <maven.version>3.6.3</maven.version>
 
     <kotlin.version>2.0.21</kotlin.version>
-    <zeebe.version>8.2.3</zeebe.version>
+    <zeebe.version>8.9.0</zeebe.version>
 
     <version.junit>5.11.3</version.junit>
 
     <plugin.version.surefire>3.5.1</plugin.version.surefire>
-    <plugin.version.javadoc>3.10.1</plugin.version.javadoc>
-    <plugin.version.jacoco>0.8.12</plugin.version.jacoco>
+    <plugin.version.javadoc>3.12.0</plugin.version.javadoc>
+    <plugin.version.jacoco>0.8.15</plugin.version.jacoco>
     <plugin.version.fmt>2.13</plugin.version.fmt>
     <plugin.version.license>4.6</plugin.version.license>
-    <plugin.version.jib>3.4.4</plugin.version.jib>
+    <plugin.version.jib>3.5.2</plugin.version.jib>
 
     <assertj.version>3.27.7</assertj.version>
-    <awaitility.version>4.2.2</awaitility.version>
+    <awaitility.version>4.3.0</awaitility.version>
     <log4j.version>2.24.1</log4j.version>
     <slf4j-api.version>2.0.9</slf4j-api.version>
-    <picocli.version>4.7.6</picocli.version>
+    <picocli.version>4.7.7</picocli.version>
+
+    <eze.version>2.0.0-SNAPSHOT</eze.version>
 
   </properties>
 
@@ -151,7 +153,7 @@
 
       <dependency>
         <groupId>org.apache.logging.log4j</groupId>
-        <artifactId>log4j-slf4j-impl</artifactId>
+        <artifactId>log4j-slf4j2-impl</artifactId>
         <version>${log4j.version}</version>
       </dependency>
 
@@ -193,7 +195,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-enforcer-plugin</artifactId>
-        <version>3.5.0</version>
+        <version>3.6.3</version>
         <configuration>
           <rules>
             <dependencyConvergence />

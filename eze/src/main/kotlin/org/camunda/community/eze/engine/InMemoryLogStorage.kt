@@ -47,12 +47,12 @@ class InMemoryLogStorage : LogStorage {
             entries.add(entry)
             val index = entries.size
             positionIndexMapping[lowestPosition] = index
-            listener.onWrite(index.toLong())
+            listener.onWrite(index.toLong(), highestPosition)
 
-            listener.onCommit(index.toLong())
+            listener.onCommit(index.toLong(), highestPosition)
             commitListeners.forEach(LogStorage.CommitListener::onCommit)
         } catch (e: Exception) {
-            listener.onWriteError(e)
+            throw e
         }
     }
 

@@ -9,17 +9,30 @@ package org.camunda.community.eze.db
 
 import io.camunda.zeebe.db.ZeebeDb
 import io.camunda.zeebe.db.ZeebeDbFactory
+import io.camunda.zeebe.protocol.EnumValue
 import java.io.File
 
-class EzeDbFactory<ColumnFamilyType : Enum<ColumnFamilyType>> : ZeebeDbFactory<ColumnFamilyType> {
+class EzeDbFactory<ColumnFamilyType> : ZeebeDbFactory<ColumnFamilyType>
+        where ColumnFamilyType : Enum<ColumnFamilyType>,
+              ColumnFamilyType : EnumValue {
 
     companion object {
-        fun <ColumnFamilyType : Enum<ColumnFamilyType>> newFactory(): ZeebeDbFactory<ColumnFamilyType> {
+        fun <ColumnFamilyType> newFactory(): ZeebeDbFactory<ColumnFamilyType>
+                where ColumnFamilyType : Enum<ColumnFamilyType>,
+                      ColumnFamilyType : EnumValue {
             return EzeDbFactory()
         }
     }
 
     override fun createDb(_ignore: File?): ZeebeDb<ColumnFamilyType> {
+        return EzeDb()
+    }
+
+    override fun createDb(_ignore: File?, _readOnly: Boolean): ZeebeDb<ColumnFamilyType> {
+        return EzeDb()
+    }
+
+    override fun openSnapshotOnlyDb(_ignore: File?): ZeebeDb<ColumnFamilyType> {
         return EzeDb()
     }
 }

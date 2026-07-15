@@ -11,11 +11,11 @@ import io.camunda.zeebe.exporter.api.Exporter
 import io.camunda.zeebe.logstreams.log.LogStreamReader
 import io.camunda.zeebe.protocol.impl.record.CopiedRecord
 import io.camunda.zeebe.protocol.impl.record.RecordMetadata
+import io.camunda.zeebe.protocol.impl.record.UnifiedRecordValue
 import io.camunda.zeebe.protocol.record.Record
 import io.camunda.zeebe.scheduler.ActorScheduler
 import io.camunda.zeebe.scheduler.clock.ActorClock
 import io.camunda.zeebe.scheduler.clock.ControlledActorClock
-import io.camunda.zeebe.stream.impl.TypedEventRegistry
 import org.camunda.community.eze.engine.ExporterRunner
 import org.camunda.community.eze.engine.EzeLogStreamFactory
 import org.camunda.community.eze.engine.EzeStreamProcessorFactory
@@ -37,7 +37,8 @@ object EngineFactory {
 
         val logStream = EzeLogStreamFactory.createLogStream(
             partitionId = partitionId,
-            scheduler = scheduler
+            scheduler = scheduler,
+            clock = clock
         )
 
         val gateway = EzeGatewayFactory.createGateway(
@@ -49,7 +50,8 @@ object EngineFactory {
             logStream = logStream,
             responseWriter = gateway.getResponseWriter(),
             scheduler = scheduler,
-            partitionCount = partitionCount
+            partitionCount = partitionCount,
+            clock = clock
         )
 
         val exporterReader = logStream.createReader()
@@ -108,9 +110,7 @@ object EngineFactory {
             val metadata = RecordMetadata()
             it.readMetadata(metadata)
 
-            val value =
-                TypedEventRegistry.EVENT_REGISTRY[metadata.valueType]!!.getDeclaredConstructor()
-                    .newInstance()
+            val value = UnifiedRecordValue.fromValueType(metadata.valueType)
 
             it.readValue(value)
 

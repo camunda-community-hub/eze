@@ -17,8 +17,9 @@ internal class DbNullKey : DbKey {
         // do nothing
     }
 
-    override fun write(buffer: MutableDirectBuffer, offset: Int) {
+    override fun write(buffer: MutableDirectBuffer, offset: Int): Int {
         // do nothing
+        return 0
     }
 
     override fun getLength(): Int {

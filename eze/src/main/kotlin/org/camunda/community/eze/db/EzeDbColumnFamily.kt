@@ -8,6 +8,9 @@
 package org.camunda.community.eze.db
 
 import io.camunda.zeebe.db.*
+import io.camunda.zeebe.protocol.ColumnFamilyScope
+import io.camunda.zeebe.protocol.EnumValue
+import io.camunda.zeebe.protocol.ScopedColumnFamily
 import io.camunda.zeebe.util.buffer.BufferUtil.startsWith
 import org.agrona.DirectBuffer
 import java.util.*
@@ -16,7 +19,7 @@ import java.util.function.BiConsumer
 import java.util.function.Consumer
 
 
-class EzeDbColumnFamily<ColumnFamilyNames : Enum<ColumnFamilyNames>,
+class EzeDbColumnFamily<ColumnFamilyNames,
         KeyType : DbKey,
         ValueType : DbValue>(
     val database: TreeMap<Bytes, Bytes>,
@@ -24,9 +27,11 @@ class EzeDbColumnFamily<ColumnFamilyNames : Enum<ColumnFamilyNames>,
     val context: TransactionContext,
     val keyInstance: KeyType,
     val valueInstance: ValueType
-) : ColumnFamily<KeyType, ValueType> {
+) : ColumnFamily<KeyType, ValueType>
+        where ColumnFamilyNames : Enum<ColumnFamilyNames>,
+              ColumnFamilyNames : EnumValue {
 
-    private val columnFamilyContext = ColumnFamilyContext(columnFamily.ordinal.toLong())
+    private val columnFamilyContext = ColumnFamilyContext(columnFamily.value.toLong())
 
     private fun ensureInOpenTransaction(
         context: TransactionContext,
@@ -60,13 +65,13 @@ class EzeDbColumnFamily<ColumnFamilyNames : Enum<ColumnFamilyNames>,
             context
         ) { transaction ->
             columnFamilyContext.writeKey(key)
-            columnFamilyContext.writeValue(value)
+            val valueLength = columnFamilyContext.writeValue(value)
 
             transaction.put(
                 columnFamilyContext.keyBufferArray,
                 columnFamilyContext.keyLength,
                 columnFamilyContext.valueBufferArray,
-                value.length
+                valueLength
             )
         }
     }
@@ -78,6 +83,17 @@ class EzeDbColumnFamily<ColumnFamilyNames : Enum<ColumnFamilyNames>,
         if (valueBuffer != null) {
             valueInstance.wrap(valueBuffer, 0, valueBuffer.capacity())
             return valueInstance
+        }
+        return null
+    }
+
+    override fun get(key: KeyType, fallback: java.util.function.Supplier<ValueType>): ValueType? {
+        columnFamilyContext.writeKey(key)
+        val valueBuffer: DirectBuffer? = getValue(context, columnFamilyContext)
+        if (valueBuffer != null) {
+            val value = fallback.get()
+            value.wrap(valueBuffer, 0, valueBuffer.capacity())
+            return value
         }
         return null
     }
@@ -120,6 +136,21 @@ class EzeDbColumnFamily<ColumnFamilyNames : Enum<ColumnFamilyNames>,
         keyPrefix: DbKey, visitor: KeyValuePairVisitor<KeyType, ValueType>
     ) {
         whileEqualPrefix(context, keyPrefix, visitor)
+    }
+
+    override fun whileEqualPrefix(
+        keyPrefix: DbKey,
+        startAtKey: KeyType?,
+        visitor: KeyValuePairVisitor<KeyType, ValueType>
+    ) {
+        whileWithPrefix(
+            context = context,
+            prefix = keyPrefix,
+            keyInstance = keyInstance,
+            valueInstance = valueInstance,
+            visitor = visitor,
+            startAtKey = startAtKey
+        )
     }
 
     override fun deleteExisting(key: KeyType) {
@@ -167,6 +198,93 @@ class EzeDbColumnFamily<ColumnFamilyNames : Enum<ColumnFamilyNames>,
                 false
             })
         return isEmpty.get()
+    }
+
+    override fun count(): Long {
+        var count = 0L
+        whileTrue(KeyValuePairVisitor { _, _ ->
+            count++
+            true
+        })
+        return count
+    }
+
+    override fun countEqualPrefix(keyPrefix: DbKey): Long {
+        var count = 0L
+        whileEqualPrefix(keyPrefix, KeyValuePairVisitor { _, _ ->
+            count++
+            true
+        })
+        return count
+    }
+
+    override fun forEachKey(consumer: Consumer<KeyType>) {
+        whileTrue(KeyVisitor { key ->
+            consumer.accept(key)
+            true
+        })
+    }
+
+    override fun whileTrue(visitor: KeyVisitor<KeyType>) {
+        whileEqualPrefix(DbNullKey(), visitor)
+    }
+
+    override fun whileTrue(startAtKey: KeyType?, visitor: KeyVisitor<KeyType>) {
+        startAtKey?.let {
+            whileWithPrefix(
+                context = context,
+                prefix = DbNullKey(),
+                keyInstance = keyInstance,
+                visitor = visitor,
+                startAtKey = it
+            )
+        } ?: whileTrue(visitor)
+    }
+
+    override fun whileEqualPrefix(keyPrefix: DbKey, visitor: Consumer<KeyType>) {
+        whileEqualPrefix(keyPrefix, KeyVisitor { key ->
+            visitor.accept(key)
+            true
+        })
+    }
+
+    override fun whileEqualPrefix(keyPrefix: DbKey, visitor: KeyVisitor<KeyType>) {
+        whileWithPrefix(
+            context = context,
+            prefix = keyPrefix,
+            keyInstance = keyInstance,
+            visitor = visitor
+        )
+    }
+
+    override fun whileEqualPrefix(
+        keyPrefix: DbKey,
+        startAtKey: KeyType?,
+        visitor: KeyVisitor<KeyType>
+    ) {
+        whileWithPrefix(
+            context = context,
+            prefix = keyPrefix,
+            keyInstance = keyInstance,
+            visitor = visitor,
+            startAtKey = startAtKey
+        )
+    }
+
+    override fun whileTrueReverse(
+        startAtKey: KeyType,
+        visitor: KeyValuePairVisitor<KeyType, ValueType>
+    ) {
+        whileTrue(startAtKey, visitor)
+    }
+
+    override fun whileTrueReverse(startAtKey: KeyType, visitor: KeyVisitor<KeyType>) {
+        whileTrue(startAtKey, visitor)
+    }
+
+    override fun partitionScope(): ColumnFamilyScope {
+        return (columnFamily as? ScopedColumnFamily)?.partitionScope()
+            ?: ColumnFamilyScope.PARTITION_LOCAL
     }
 
     fun forEach(context: TransactionContext, consumer: Consumer<ValueType>) {
@@ -308,31 +426,51 @@ class EzeDbColumnFamily<ColumnFamilyNames : Enum<ColumnFamilyNames>,
         keyInstance: KeyType,
         valueInstance: ValueType,
         visitor: KeyValuePairVisitor<KeyType, ValueType>,
-        predicate: (ByteArray, Int, ByteArray) -> Boolean = { _, _, _ -> true }
+        startAtKey: DbKey? = null,
+        predicate: (ByteArray, Int, ByteArray) -> Boolean = ::startsWithPrefix
     ) {
-        columnFamilyContext.withPrefixKey(
-            prefix!!
-        ) { prefixKey: ByteArray?, prefixLength: Int ->
-            ensureInOpenTransaction(
-                context
-            ) { transaction ->
+        columnFamilyContext.withPrefixKey(prefix!!) { prefixKey: ByteArray?, prefixLength: Int ->
+            columnFamilyContext.withPrefixKey(startAtKey ?: prefix) { seekKey: ByteArray?, seekLength: Int ->
+                ensureInOpenTransaction(
+                    context
+                ) { transaction ->
 
-                transaction.newIterator().seek(prefixKey!!, prefixLength).iterate().forEach {
+                    transaction.newIterator().seek(seekKey!!, seekLength).iterate().forEach {
 
-                    val keyBytes = it.key.byteArray
+                        val keyBytes = it.key.byteArray
 
-                    val shouldVisit = predicate.invoke(prefixKey, prefixLength, keyBytes)
-                    if (!shouldVisit) {
-                        return@forEach
-                    }
+                        val shouldVisit = predicate.invoke(prefixKey!!, prefixLength, keyBytes)
+                        if (!shouldVisit) {
+                            return@ensureInOpenTransaction
+                        }
 
-                    val shouldVisitNext = visit(keyInstance, valueInstance, visitor, it)
-                    if (!shouldVisitNext) {
-                        return@ensureInOpenTransaction
+                        val shouldVisitNext = visit(keyInstance, valueInstance, visitor, it)
+                        if (!shouldVisitNext) {
+                            return@ensureInOpenTransaction
+                        }
                     }
                 }
             }
         }
+    }
+
+    private fun <KeyType : DbKey?> whileWithPrefix(
+        context: TransactionContext,
+        prefix: DbKey?,
+        keyInstance: KeyType,
+        visitor: KeyVisitor<KeyType>,
+        startAtKey: DbKey? = null,
+        predicate: (ByteArray, Int, ByteArray) -> Boolean = ::startsWithPrefix
+    ) {
+        whileWithPrefix(
+            context = context,
+            prefix = prefix,
+            keyInstance = keyInstance,
+            valueInstance = valueInstance,
+            visitor = KeyValuePairVisitor { key, _ -> visitor.visit(key) },
+            startAtKey = startAtKey,
+            predicate = predicate
+        )
     }
 
     private fun <KeyType : DbKey?, ValueType : DbValue?> visit(
@@ -355,11 +493,23 @@ class EzeDbColumnFamily<ColumnFamilyNames : Enum<ColumnFamilyNames>,
         startAtKey?.let {
             whileWithPrefix(
                 context = context,
-                prefix = it,
+                prefix = DbNullKey(),
                 keyInstance = keyInstance,
                 valueInstance = valueInstance,
-                visitor = visitor
+                visitor = visitor,
+                startAtKey = it
             )
         } ?: whileTrue(visitor)
+    }
+
+    private fun startsWithPrefix(prefixKey: ByteArray, prefixLength: Int, key: ByteArray): Boolean {
+        return startsWith(
+            prefixKey,
+            0,
+            prefixLength,
+            key,
+            0,
+            key.size
+        )
     }
 }

@@ -31,15 +31,14 @@ class ColumnFamilyContext internal constructor(private val columnFamilyPrefix: L
         keyLength = 0
         keyBuffer.putLong(0, columnFamilyPrefix, ZeebeDbConstants.ZB_DB_BYTE_ORDER)
         keyLength += java.lang.Long.BYTES
-        key.write(keyBuffer, java.lang.Long.BYTES)
-        keyLength += key.length
+        keyLength += key.write(keyBuffer, java.lang.Long.BYTES)
     }
 
     val keyBufferArray: ByteArray
         get() = keyBuffer.byteArray()
 
-    fun writeValue(value: DbValue) {
-        value.write(valueBuffer, 0)
+    fun writeValue(value: DbValue): Int {
+        return value.write(valueBuffer, 0)
     }
 
     val valueBufferArray: ByteArray
@@ -74,11 +73,10 @@ class ColumnFamilyContext internal constructor(private val columnFamilyPrefix: L
 
     fun withPrefixKey(key: DbKey, prefixKeyConsumer: ObjIntConsumer<ByteArray?>) {
         checkNotNull(prefixKeyBuffers.peek()) { "Currently nested prefix iterations are not supported! This will cause unexpected behavior." }
-        val prefixKeyBuffer = prefixKeyBuffers.remove()
+            val prefixKeyBuffer = prefixKeyBuffers.remove()
         try {
             prefixKeyBuffer!!.putLong(0, columnFamilyPrefix, ZeebeDbConstants.ZB_DB_BYTE_ORDER)
-            key.write(prefixKeyBuffer, java.lang.Long.BYTES)
-            val prefixLength = java.lang.Long.BYTES + key.length
+            val prefixLength = java.lang.Long.BYTES + key.write(prefixKeyBuffer, java.lang.Long.BYTES)
             prefixKeyConsumer.accept(prefixKeyBuffer.byteArray(), prefixLength)
         } finally {
             prefixKeyBuffers.add(prefixKeyBuffer)
@@ -91,6 +89,8 @@ class ColumnFamilyContext internal constructor(private val columnFamilyPrefix: L
 
     init {
         prefixKeyBuffers = ArrayDeque()
+        prefixKeyBuffers.add(ExpandableArrayBuffer())
+        prefixKeyBuffers.add(ExpandableArrayBuffer())
         prefixKeyBuffers.add(ExpandableArrayBuffer())
         prefixKeyBuffers.add(ExpandableArrayBuffer())
     }
